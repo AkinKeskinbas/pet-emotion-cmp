@@ -129,10 +129,13 @@ fun CameraScreen(
             CaptureMode_Toggle(
                 captureMode = uiState.captureMode,
                 onModeChanged = { mode ->
+                    println("CameraScreen: Mode changed to: $mode")
                     if (mode == CaptureMode.VIDEO) {
                         // Show coming soon message for video
+                        println("CameraScreen: Video mode selected, showing coming soon message")
                         viewModel.showComingSoonMessage("Video recording coming soon in v2!")
                     } else {
+                        println("CameraScreen: Photo mode selected")
                         viewModel.setCaptureMode(mode)
                     }
                 }

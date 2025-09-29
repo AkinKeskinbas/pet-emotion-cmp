@@ -242,24 +242,7 @@ class CameraViewModel(
             updateState { it.copy(isAnalyzing = true, error = null) }
 
             try {
-                val userPrefs = preferencesRepository.getUserPrefs()
-                val apiKey = userPrefs.openAiApiKey
-                println("ViewModel: API key check - isNull: ${apiKey == null}, isBlank: ${apiKey?.isBlank()}")
-
-                if (apiKey.isNullOrBlank()) {
-                    println("ViewModel: API key not configured, creating mock analysis result")
-                    // Create a mock analysis result for testing
-                    val mockResult = createMockAnalysisResult(mediaBytes)
-                    updateState {
-                        it.copy(
-                            isAnalyzing = false,
-                            analysisResult = mockResult,
-                            navigationEvent = mockResult.id
-                        )
-                    }
-                    println("ViewModel: Mock analysis created with ID: ${mockResult.id}")
-                    return@launch
-                }
+                println("ViewModel: Starting backend analysis...")
 
                 // Save media file
                 val mediaType = if (_uiState.value.captureMode == CaptureMode.PHOTO) {
@@ -269,9 +252,10 @@ class CameraViewModel(
                 }
 
                 val mediaPath = analysisRepository.saveMediaFile(mediaBytes, mediaType)
+                println("ViewModel: Media saved to: $mediaPath")
 
-                // Analyze with AI
-                val analysisResult = analysisRepository.analyzeMediaWithAI(mediaBytes, apiKey)
+                // Analyze with backend (no API key needed anymore)
+                val analysisResult = analysisRepository.analyzeMediaWithAI(mediaBytes, "")
 
                 analysisResult.fold(
                     onSuccess = { result ->
@@ -334,33 +318,4 @@ class CameraViewModel(
         }
     }
 
-    private suspend fun createMockAnalysisResult(mediaBytes: ByteArray): AnalysisRecord {
-        // Save the media file first
-        val mediaType = if (_uiState.value.captureMode == CaptureMode.PHOTO) {
-            MediaType.IMAGE.value
-        } else {
-            MediaType.VIDEO.value
-        }
-
-        val mediaPath = analysisRepository.saveMediaFile(mediaBytes, mediaType)
-        println("ViewModel: Mock analysis - saved media to: $mediaPath")
-
-        // Create mock analysis record
-        val mockRecord = AnalysisRecord.create(
-            petId = _uiState.value.selectedPet?.id,
-            mediaPath = mediaPath,
-            mediaType = mediaType,
-            emotion = "Happy",
-            confidence = 0.85,
-            summary = "This is a test analysis result since no OpenAI API key is configured. Your pet appears to be in a positive mood!",
-            detailsBody = "Body Language: Relaxed posture with open stance\n\nVocalization: Content sounds indicating comfort\n\nContext: Pleasant environment with good lighting",
-            tags = listOf("test", "mock", "happy")
-        )
-
-        // Save to database
-        analysisRepository.insertAnalysisRecord(mockRecord)
-        println("ViewModel: Mock analysis record saved to database")
-
-        return mockRecord
-    }
 }

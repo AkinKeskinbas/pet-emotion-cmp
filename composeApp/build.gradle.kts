@@ -48,6 +48,13 @@ kotlin {
 
             // DataStore for Android
             implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+            // Ktor HTTP client engine for Android
+            implementation(libs.ktor.client.okhttp)
+        }
+        iosMain.dependencies {
+            // Ktor HTTP client engine for iOS
+            implementation("io.ktor:ktor-client-darwin:3.2.3")
         }
         commonMain.dependencies {
             implementation(compose.runtime)

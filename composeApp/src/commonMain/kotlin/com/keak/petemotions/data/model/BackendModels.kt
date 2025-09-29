@@ -13,8 +13,8 @@ data class RegisterRequest(
 @Serializable
 data class RegisterResponse(
     val token: String,
-    @SerialName("expires_in") val expiresIn: Long,
-    @SerialName("expires_at_epoch_seconds") val expiresAtEpochSeconds: Long
+    @SerialName("expires_in") val expiresIn: Long? = null,
+    @SerialName("expires_at_epoch_seconds") val expiresAtEpochSeconds: Long? = null
 )
 
 @Serializable
@@ -25,18 +25,18 @@ data class AnalyzeJsonRequest(
 // Response models
 @Serializable
 data class BackendAnalysisResult(
-    val emotion: String,
-    val confidence: Double,
-    val summary: String,
-    val tags: List<String>,
-    val details: BackendAnalysisDetails
+    val emotion: String = "",
+    val confidence: Double = 0.0,
+    val summary: String = "",
+    val tags: List<String> = emptyList(),
+    val details: BackendAnalysisDetails = BackendAnalysisDetails()
 )
 
 @Serializable
 data class BackendAnalysisDetails(
-    @SerialName("body_language") val bodyLanguage: String,
-    val vocalization: String,
-    val context: String
+    val bodyLanguage: String = "",
+    val vocalization: String = "",
+    val context: String = ""
 )
 
 @Serializable

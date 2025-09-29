@@ -1,6 +1,7 @@
 package com.keak.petemotions.data.api
 
 import com.keak.petemotions.data.model.*
+import com.keak.petemotions.platform.PlatformConfig
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -13,7 +14,7 @@ import kotlinx.serialization.json.Json
 import kotlin.random.Random
 
 class BackendApiService(
-    private val baseUrl: String = "http://localhost:8080"
+    private val baseUrl: String = PlatformConfig.backendBaseUrl
 ) {
     private val json = Json {
         ignoreUnknownKeys = true
@@ -46,7 +47,8 @@ class BackendApiService(
             if (response.status.isSuccess()) {
                 val registerResponse = response.body<RegisterResponse>()
                 authToken = registerResponse.token
-                println("Backend: Registration successful, token expires in ${registerResponse.expiresIn}s")
+                val expirationInfo = registerResponse.expiresIn?.let { "expires in ${it}s" } ?: "no expiration info"
+                println("Backend: Registration successful, $expirationInfo")
                 Result.success(registerResponse)
             } else {
                 val errorResponse = response.body<ErrorResponse>()

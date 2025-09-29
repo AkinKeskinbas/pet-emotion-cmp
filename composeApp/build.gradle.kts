@@ -90,6 +90,9 @@ kotlin {
             // For iOS file paths
             implementation("com.squareup.okio:okio:3.6.0")
 
+            // Camera K for cross-platform camera functionality (experimental)
+            // implementation("io.github.kashif-mehmood-km:camerak:0.0.12")
+
             // Permissions - TODO: Fix repository or find alternative
             // implementation(libs.permissions.compose)
 

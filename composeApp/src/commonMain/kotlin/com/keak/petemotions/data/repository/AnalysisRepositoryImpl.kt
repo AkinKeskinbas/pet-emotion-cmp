@@ -196,8 +196,10 @@ class AnalysisRepositoryImpl(
                 emptyMap()
             }
 
-            // Convert bytes to base64 string for storage
-            val base64Data = mediaBytes.joinToString("") { "%02x".format(it) }
+            // Convert bytes to hex string for storage
+            val base64Data = mediaBytes.joinToString("") { byte ->
+                byte.toUByte().toString(16).padStart(2, '0')
+            }
             val updatedFiles = currentFiles + (fileName to base64Data)
             preferences[MEDIA_FILES_KEY] = json.encodeToString(updatedFiles)
         }

@@ -55,17 +55,17 @@ actual fun rememberCameraLauncher(
                     val outputStream = ByteArrayOutputStream()
                     imageBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
                     val imageBytes = outputStream.toByteArray()
-                    println("Camera photo captured: ${imageBytes.size} bytes")
+                    println("Android: Camera photo captured: ${imageBytes.size} bytes")
                     onPhotoCaptured(imageBytes)
                 } else {
-                    println("Camera: No image data received")
+                    println("Android: No image data received")
                 }
             } catch (e: Exception) {
-                println("Camera error: ${e.message}")
+                println("Android: Camera error: ${e.message}")
                 e.printStackTrace()
             }
         } else {
-            println("Camera: Capture cancelled or failed")
+            println("Android: Camera capture cancelled or failed")
         }
     }
 

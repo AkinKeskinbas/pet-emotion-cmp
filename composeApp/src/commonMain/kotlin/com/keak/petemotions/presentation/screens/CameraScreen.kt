@@ -27,6 +27,11 @@ expect fun rememberGalleryLauncher(
     onImageSelected: (ByteArray) -> Unit
 ): () -> Unit
 
+@Composable
+expect fun rememberCameraLauncher(
+    onPhotoCaptured: (ByteArray) -> Unit
+): () -> Unit
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +54,7 @@ fun CameraScreen(
     }
 
     // Permission launchers
-    val cameraLauncher = rememberPermissionLauncher(PermissionType.CAMERA) { granted ->
+    val cameraPermissionLauncher = rememberPermissionLauncher(PermissionType.CAMERA) { granted ->
         viewModel.onPermissionResult(granted)
     }
 
@@ -59,6 +64,12 @@ fun CameraScreen(
 
     val galleryLauncher = rememberGalleryLauncher { imageBytes ->
         viewModel.analyzeSelectedImage(imageBytes)
+    }
+
+    val systemCameraLauncher = rememberCameraLauncher { imageBytes ->
+        println("CameraScreen: Camera photo received: ${imageBytes.size} bytes")
+        // Store the captured photo directly in state for preview
+        viewModel.onPhotoCaptured(imageBytes)
     }
 
     // Debug permission status
@@ -182,7 +193,7 @@ fun CameraScreen(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Button(
-                                    onClick = cameraLauncher
+                                    onClick = cameraPermissionLauncher
                                 ) {
                                     Text("Grant Camera Permission")
                                 }
@@ -352,11 +363,11 @@ fun CameraScreen(
                                 CaptureMode.PHOTO -> {
                                     println("CameraScreen: Photo mode, permission=${uiState.cameraPermissionStatus}")
                                     if (uiState.cameraPermissionStatus == CameraPermissionStatus.GRANTED) {
-                                        println("CameraScreen: Starting photo capture...")
-                                        viewModel.capturePhoto()
+                                        println("CameraScreen: Opening system camera...")
+                                        systemCameraLauncher()
                                     } else {
                                         println("CameraScreen: Requesting camera permission...")
-                                        cameraLauncher()
+                                        cameraPermissionLauncher()
                                     }
                                 }
                                 CaptureMode.VIDEO -> {
@@ -365,7 +376,7 @@ fun CameraScreen(
                                     } else {
                                         // For video, we need both camera and microphone permissions
                                         when {
-                                            uiState.cameraPermissionStatus != CameraPermissionStatus.GRANTED -> cameraLauncher()
+                                            uiState.cameraPermissionStatus != CameraPermissionStatus.GRANTED -> cameraPermissionLauncher()
                                             uiState.microphonePermissionStatus != CameraPermissionStatus.GRANTED -> microphoneLauncher()
                                             else -> viewModel.startVideoRecording()
                                         }

@@ -1,22 +1,15 @@
 package com.keak.petemotions.presentation.screens
 
 import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
+import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.*
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
-import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
 import org.koin.mp.KoinPlatform.getKoin
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import java.io.ByteArrayOutputStream
 
 @Composable
 actual fun rememberGalleryLauncher(
@@ -43,5 +36,41 @@ actual fun rememberGalleryLauncher(
 
     return {
         launcher.launch("image/*")
+    }
+}
+
+@Composable
+actual fun rememberCameraLauncher(
+    onPhotoCaptured: (ByteArray) -> Unit
+): () -> Unit {
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            try {
+                // Get the captured image from the Intent extras
+                val imageBitmap = result.data?.extras?.get("data") as? Bitmap
+                if (imageBitmap != null) {
+                    // Convert bitmap to ByteArray
+                    val outputStream = ByteArrayOutputStream()
+                    imageBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+                    val imageBytes = outputStream.toByteArray()
+                    println("Camera photo captured: ${imageBytes.size} bytes")
+                    onPhotoCaptured(imageBytes)
+                } else {
+                    println("Camera: No image data received")
+                }
+            } catch (e: Exception) {
+                println("Camera error: ${e.message}")
+                e.printStackTrace()
+            }
+        } else {
+            println("Camera: Capture cancelled or failed")
+        }
+    }
+
+    return {
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        cameraLauncher.launch(intent)
     }
 }

@@ -171,6 +171,11 @@ class CameraViewModel(
         }
     }
 
+    fun onPhotoCaptured(photoBytes: ByteArray) {
+        println("ViewModel: onPhotoCaptured called with ${photoBytes.size} bytes")
+        updateState { it.copy(capturedPhotoBytes = photoBytes) }
+    }
+
     fun startVideoRecording() {
         viewModelScope.launch {
             if (_uiState.value.cameraPermissionStatus != CameraPermissionStatus.GRANTED) {

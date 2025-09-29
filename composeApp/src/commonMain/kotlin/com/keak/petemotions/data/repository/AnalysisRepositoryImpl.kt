@@ -22,6 +22,7 @@ class AnalysisRepositoryImpl(
 
     companion object {
         private val ANALYSIS_RECORDS_KEY = stringPreferencesKey("analysis_records_list")
+        private val MEDIA_FILES_KEY = stringPreferencesKey("media_files")
     }
 
     override fun getAllAnalysisRecords(): Flow<List<AnalysisRecord>> {
@@ -183,15 +184,49 @@ class AnalysisRepositoryImpl(
     }
 
     override suspend fun saveMediaFile(mediaBytes: ByteArray, mediaType: String): String {
-        // For now, we'll generate a unique filename but not actually save to file system
-        // This would be handled by MediaStorage in a real implementation
         val fileName = "media_${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}.${if (mediaType == "image") "jpg" else "mp4"}"
+        println("AnalysisRepositoryImpl: Saving media file: $fileName (${mediaBytes.size} bytes)")
+
+        // Save media file to DataStore for testing
+        dataStore.edit { preferences ->
+            val currentFilesJson = preferences[MEDIA_FILES_KEY] ?: "{}"
+            val currentFiles = try {
+                json.decodeFromString<Map<String, String>>(currentFilesJson)
+            } catch (e: Exception) {
+                emptyMap()
+            }
+
+            // Convert bytes to base64 string for storage
+            val base64Data = mediaBytes.joinToString("") { "%02x".format(it) }
+            val updatedFiles = currentFiles + (fileName to base64Data)
+            preferences[MEDIA_FILES_KEY] = json.encodeToString(updatedFiles)
+        }
+
+        println("AnalysisRepositoryImpl: Media file saved successfully: $fileName")
         return fileName
     }
 
     override suspend fun loadMediaFile(mediaPath: String): ByteArray? {
-        // This would load from MediaStorage in a real implementation
-        return null
+        println("AnalysisRepositoryImpl: Loading media file: $mediaPath")
+        return try {
+            val preferences = dataStore.data.first()
+            val filesJson = preferences[MEDIA_FILES_KEY] ?: "{}"
+            val files = json.decodeFromString<Map<String, String>>(filesJson)
+
+            val hexData = files[mediaPath]
+            if (hexData != null) {
+                // Convert hex string back to bytes
+                val bytes = hexData.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                println("AnalysisRepositoryImpl: Media file loaded successfully: $mediaPath (${bytes.size} bytes)")
+                bytes
+            } else {
+                println("AnalysisRepositoryImpl: Media file not found: $mediaPath")
+                null
+            }
+        } catch (e: Exception) {
+            println("AnalysisRepositoryImpl: Error loading media file: ${e.message}")
+            null
+        }
     }
 
     override suspend fun analyzeMediaWithAI(mediaBytes: ByteArray, apiKey: String): Result<AnalysisResult> {

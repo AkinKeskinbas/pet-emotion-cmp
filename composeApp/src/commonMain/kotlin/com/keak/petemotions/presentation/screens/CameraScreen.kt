@@ -106,10 +106,17 @@ fun CameraScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Capture mode toggle
+            // Capture mode toggle - Video coming soon
             CaptureMode_Toggle(
                 captureMode = uiState.captureMode,
-                onModeChanged = viewModel::setCaptureMode
+                onModeChanged = { mode ->
+                    if (mode == CaptureMode.VIDEO) {
+                        // Show coming soon message for video
+                        viewModel.showComingSoonMessage("Video recording coming soon in v2!")
+                    } else {
+                        viewModel.setCaptureMode(mode)
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(24.dp))

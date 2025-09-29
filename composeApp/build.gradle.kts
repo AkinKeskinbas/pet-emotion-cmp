@@ -44,6 +44,7 @@ kotlin {
             implementation(libs.androidx.camera.camera2)
             implementation(libs.androidx.camera.lifecycle)
             implementation(libs.androidx.camera.view)
+            implementation("androidx.camera:camera-extensions:1.5.0")
 
             // DataStore for Android
             implementation("androidx.datastore:datastore-preferences:1.1.1")

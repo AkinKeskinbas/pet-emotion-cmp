@@ -114,6 +114,10 @@ class CameraViewModel(
         updateState { it.copy(microphonePermissionStatus = status) }
     }
 
+    fun showComingSoonMessage(message: String) {
+        updateState { it.copy(error = UiError(message)) }
+    }
+
     fun analyzeSelectedImage(imageBytes: ByteArray) {
         // Set capture mode to photo for selected images
         updateState { it.copy(captureMode = CaptureMode.PHOTO) }

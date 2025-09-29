@@ -1,5 +1,6 @@
 package com.keak.petemotions.presentation.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,11 +12,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.keak.petemotions.data.model.AnalysisRecord
 import com.keak.petemotions.data.repository.AnalysisRepository
+import com.keak.petemotions.platform.createPlaceholderImage
+import com.keak.petemotions.platform.loadImageFromBytes
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -121,7 +126,11 @@ fun AnalysisResultContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Media preview
-        MediaPreviewCard(analysisRecord.mediaPath, analysisRecord.mediaType)
+        MediaPreviewCard(
+            mediaPath = analysisRecord.mediaPath,
+            mediaType = analysisRecord.mediaType,
+            analysisRepository = koinInject()
+        )
 
         // Emotion result
         EmotionResultCard(analysisRecord.emotion, analysisRecord.confidence)
@@ -143,7 +152,28 @@ fun AnalysisResultContent(
 }
 
 @Composable
-fun MediaPreviewCard(mediaPath: String, mediaType: String) {
+fun MediaPreviewCard(
+    mediaPath: String,
+    mediaType: String,
+    analysisRepository: AnalysisRepository
+) {
+    var mediaBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(mediaPath) {
+        try {
+            mediaBytes = analysisRepository.loadMediaFile(mediaPath)
+            if (mediaBytes == null) {
+                error = "Failed to load media"
+            }
+        } catch (e: Exception) {
+            error = "Error loading media: ${e.message}"
+        } finally {
+            isLoading = false
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
@@ -155,26 +185,85 @@ fun MediaPreviewCard(mediaPath: String, mediaType: String) {
                 .clip(RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
-            // TODO: Load actual image/video from mediaPath
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = if (mediaType == "video") Icons.Default.VideoLibrary else Icons.Default.Image,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = if (mediaType == "video") "Video Preview" else "Photo Preview",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            when {
+                isLoading -> {
+                    CircularProgressIndicator()
+                }
+                error != null -> {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Error,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = error!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+                mediaBytes != null && mediaType == "image" -> {
+                    val imageBitmap = remember(mediaBytes) {
+                        loadImageFromBytes(mediaBytes!!) ?: createPlaceholderImage()
+                    }
+                    Image(
+                        bitmap = imageBitmap,
+                        contentDescription = "Captured photo",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                mediaType == "video" -> {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VideoLibrary,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Video Preview (Coming Soon)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                else -> {
+                    PhotoPlaceholder()
+                }
             }
         }
     }
 }
+
+@Composable
+private fun PhotoPlaceholder() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.Image,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Photo Preview",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
 
 @Composable
 fun EmotionResultCard(emotion: String, confidence: Double) {

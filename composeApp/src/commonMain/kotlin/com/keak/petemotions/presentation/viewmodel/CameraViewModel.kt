@@ -127,8 +127,13 @@ class CameraViewModel(
 
     fun analyzeSelectedImage(imageBytes: ByteArray) {
         println("ViewModel: analyzeSelectedImage called with ${imageBytes.size} bytes")
-        // Set capture mode to photo for selected images
-        updateState { it.copy(captureMode = CaptureMode.PHOTO) }
+        // Set capture mode to photo for selected images and store the image
+        updateState {
+            it.copy(
+                captureMode = CaptureMode.PHOTO,
+                capturedPhotoBytes = imageBytes  // Store gallery image for preview consistency
+            )
+        }
         // Use the existing analyzeMedia function
         analyzeMedia(imageBytes)
     }
@@ -311,7 +316,14 @@ class CameraViewModel(
     }
 
     fun clearNavigationEvent() {
-        updateState { it.copy(navigationEvent = null) }
+        println("ViewModel: clearNavigationEvent called - clearing photo and resetting state")
+        updateState {
+            it.copy(
+                navigationEvent = null,
+                capturedPhotoBytes = null, // Clear captured photo after analysis
+                analysisResult = null      // Clear analysis result for fresh start
+            )
+        }
     }
 
     private suspend fun createMockAnalysisResult(mediaBytes: ByteArray): AnalysisRecord {

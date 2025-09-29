@@ -1,37 +1,73 @@
 package com.keak.petemotions.platform
 
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.convert
+import kotlinx.cinterop.usePinned
+import org.jetbrains.skia.Color
+import org.jetbrains.skia.ColorAlphaType
+import org.jetbrains.skia.Image
+import org.jetbrains.skia.ImageInfo
+import org.jetbrains.skia.Surface
 import platform.Foundation.NSData
+import platform.Foundation.create
 import platform.UIKit.UIImage
+import platform.UIKit.UIImageJPEGRepresentation
+import platform.UIKit.UIImagePNGRepresentation
+import platform.posix.memcpy
 
 actual fun loadImageFromBytes(bytes: ByteArray): ImageBitmap? {
-    return try {
-        // For iOS, we'd need to implement UIImage to ImageBitmap conversion
-        // For now, return null to use placeholder
-        null
-    } catch (e: Exception) {
-        null
+    return runCatching<ImageBitmap> {
+        Image.makeFromEncoded(bytes).toComposeImageBitmap()
+    }.getOrElse { primaryError ->
+        println("iOS: Skia failed to decode image bytes (${primaryError.message}), attempting UIKit fallback")
+
+        val nsData = bytes.toNSData()
+        val uiImage = UIImage(data = nsData)
+        if (uiImage == null) {
+            println("iOS: UIKit could not create UIImage from data")
+            return null
+        }
+
+        val reencodedData = UIImageJPEGRepresentation(uiImage, 0.9) ?: UIImagePNGRepresentation(uiImage)
+        if (reencodedData == null) {
+            println("iOS: Failed to re-encode UIImage to JPEG/PNG")
+            return null
+        }
+
+        runCatching<ImageBitmap> {
+            Image.makeFromEncoded(reencodedData.toByteArray()).toComposeImageBitmap()
+        }.onFailure { fallbackError ->
+            println("iOS: Fallback decode also failed: ${fallbackError.message}")
+        }.getOrNull()
     }
 }
 
 actual fun createPlaceholderImage(): ImageBitmap {
-    // Create a simple colored bitmap for iOS
     val width = 300
     val height = 200
-    val pixels = IntArray(width * height)
+    val imageInfo = ImageInfo.makeS32(width, height, ColorAlphaType.PREMUL)
+    val surface = Surface.makeRaster(imageInfo)
+    surface.canvas.clear(Color.makeARGB(255, 180, 160, 200))
+    return surface.makeImageSnapshot().toComposeImageBitmap()
+}
 
-    // Create gradient pattern
-    for (y in 0 until height) {
-        for (x in 0 until width) {
-            val r = (x * 255 / width).coerceIn(0, 255)
-            val g = (y * 255 / height).coerceIn(0, 255)
-            val b = 128
-            pixels[y * width + x] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+private fun ByteArray.toNSData(): NSData {
+    return usePinned { pinned ->
+        NSData.create(bytes = pinned.addressOf(0), length = size.toULong())
+    }
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun NSData.toByteArray(): ByteArray {
+    val length = this.length.toInt()
+    val bytes = ByteArray(length)
+    if (length > 0) {
+        bytes.usePinned { pinned ->
+            memcpy(pinned.addressOf(0), this.bytes, length.convert())
         }
     }
-
-    return ImageBitmap(width, height).apply {
-        // Note: This is a simplified approach for iOS
-        // In practice, you'd use proper iOS image APIs
-    }
+    return bytes
 }

@@ -133,6 +133,7 @@ fun AnalysisResultContent(
     ) {
         // Media preview
         MediaPreviewCard(
+            recordId = analysisRecord.id,
             mediaPath = analysisRecord.mediaPath,
             mediaType = analysisRecord.mediaType,
             analysisRepository = koinInject()
@@ -159,6 +160,7 @@ fun AnalysisResultContent(
 
 @Composable
 fun MediaPreviewCard(
+    recordId: String,
     mediaPath: String,
     mediaType: String,
     analysisRepository: AnalysisRepository
@@ -214,12 +216,25 @@ fun MediaPreviewCard(
                     }
                 }
                 mediaBytes != null && mediaType == "image" -> {
-                    val imageBitmap = remember(mediaBytes) {
-                        loadImageFromBytes(mediaBytes!!) ?: createPlaceholderImage()
+                    val decodedImage = remember(mediaBytes) {
+                        mediaBytes?.let { bytes ->
+                            loadImageFromBytes(bytes)
+                        }
                     }
+
+                    val imageToShow = decodedImage ?: createPlaceholderImage()
+
+                    if (decodedImage == null) {
+                        println("ResultDetailScreen: Falling back to placeholder image for recordId=$recordId")
+                    }
+
                     Image(
-                        bitmap = imageBitmap,
-                        contentDescription = "Captured photo",
+                        bitmap = imageToShow,
+                        contentDescription = if (decodedImage != null) {
+                            "Captured photo"
+                        } else {
+                            "Placeholder photo"
+                        },
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )

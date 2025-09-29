@@ -2,8 +2,6 @@ package com.keak.petemotions.utils.di
 
 import com.keak.petemotions.data.repository.AnalysisRepository
 import com.keak.petemotions.data.repository.AnalysisRepositoryImpl
-import com.keak.petemotions.data.repository.OpenAIService
-import com.keak.petemotions.data.repository.OpenAIServiceImpl
 import com.keak.petemotions.data.repository.PetRepository
 import com.keak.petemotions.data.repository.PetRepositoryImpl
 import com.keak.petemotions.data.repository.PreferencesRepository
@@ -21,7 +19,6 @@ import org.koin.dsl.module
 val commonModule = module {
     single { createDataStore() }
 
-    single<OpenAIService> { OpenAIServiceImpl() }
     single<PetRepository> { PetRepositoryImpl(get()) }
     single<AnalysisRepository> { AnalysisRepositoryImpl(get()) }
     single<PreferencesRepository> { PreferencesRepositoryImpl(get()) }

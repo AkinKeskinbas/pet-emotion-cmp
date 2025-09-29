@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.keak.petemotions.data.api.BackendApiService
 import com.keak.petemotions.data.model.AnalysisRecord
 import com.keak.petemotions.data.model.AnalysisResult
 import kotlinx.coroutines.flow.Flow
@@ -11,14 +12,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.koin.mp.KoinPlatform
 
 class AnalysisRepositoryImpl(
     private val dataStore: DataStore<Preferences>
 ) : AnalysisRepository {
 
     private val json = Json { ignoreUnknownKeys = true }
-    private val openAIService: OpenAIService by lazy { KoinPlatform.getKoin().get() }
+    private val backendApiService = BackendApiService()
 
     companion object {
         private val ANALYSIS_RECORDS_KEY = stringPreferencesKey("analysis_records_list")
@@ -232,6 +232,36 @@ class AnalysisRepositoryImpl(
     }
 
     override suspend fun analyzeMediaWithAI(mediaBytes: ByteArray, apiKey: String): Result<AnalysisResult> {
-        return openAIService.analyzeMedia(mediaBytes, apiKey)
+        return try {
+            println("AnalysisRepository: Starting backend analysis for ${mediaBytes.size} bytes")
+
+            val backendResult = backendApiService.analyzeImage(mediaBytes)
+
+            backendResult.fold(
+                onSuccess = { result ->
+                    // Convert backend result to internal AnalysisResult format
+                    val analysisResult = AnalysisResult(
+                        emotion = result.emotion,
+                        confidence = result.confidence,
+                        summary = result.summary,
+                        details = AnalysisResult.AnalysisDetails(
+                            bodyLanguage = result.details.bodyLanguage,
+                            vocalization = result.details.vocalization,
+                            context = result.details.context
+                        ),
+                        tags = result.tags
+                    )
+                    println("AnalysisRepository: Backend analysis successful - ${result.emotion} (${result.confidence})")
+                    Result.success(analysisResult)
+                },
+                onFailure = { error ->
+                    println("AnalysisRepository: Backend analysis failed: ${error.message}")
+                    Result.failure(error)
+                }
+            )
+        } catch (e: Exception) {
+            println("AnalysisRepository: Analysis exception: ${e.message}")
+            Result.failure(e)
+        }
     }
 }

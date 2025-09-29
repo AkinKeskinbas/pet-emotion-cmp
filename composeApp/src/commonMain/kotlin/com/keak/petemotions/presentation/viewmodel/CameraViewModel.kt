@@ -9,6 +9,7 @@ import com.keak.petemotions.data.repository.PetRepository
 import com.keak.petemotions.data.repository.PreferencesRepository
 import com.keak.petemotions.platform.CameraService
 import com.keak.petemotions.platform.CameraPermissionStatus
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -41,6 +42,13 @@ class CameraViewModel(
 ) : BaseViewModel<CameraUiState>(CameraUiState()) {
 
     private var recordingTimerJob: Job? = null
+    private val errorHandler = CoroutineExceptionHandler { _, throwable ->
+        println("CameraViewModel: Unhandled coroutine error -> ${throwable.message}")
+        throwable.printStackTrace()
+        updateState { state ->
+            state.copy(error = UiError(throwable.message ?: "Unexpected camera error"))
+        }
+    }
 
     companion object {
         private const val VIDEO_DURATION_SECONDS = 5
@@ -53,7 +61,7 @@ class CameraViewModel(
     }
 
     private fun loadPets() {
-        viewModelScope.launch {
+        viewModelScope.launch(errorHandler) {
             petRepository.getAllPets().collect { pets ->
                 updateState { it.copy(availablePets = pets) }
             }
@@ -61,7 +69,7 @@ class CameraViewModel(
     }
 
     private fun checkPermissions() {
-        viewModelScope.launch {
+        viewModelScope.launch(errorHandler) {
             val cameraStatus = cameraService.checkCameraPermission()
             val microphoneStatus = cameraService.checkMicrophonePermission()
             updateState {
@@ -74,7 +82,7 @@ class CameraViewModel(
     }
 
     private fun observeRecordingState() {
-        viewModelScope.launch {
+        viewModelScope.launch(errorHandler) {
             cameraService.isRecording.collect { isRecording ->
                 updateState { it.copy(isRecording = isRecording) }
             }
@@ -90,7 +98,7 @@ class CameraViewModel(
     }
 
     fun requestCameraPermission() {
-        viewModelScope.launch {
+        viewModelScope.launch(errorHandler) {
             val granted = cameraService.requestCameraPermission()
             val status = if (granted) CameraPermissionStatus.GRANTED else CameraPermissionStatus.DENIED
             updateState { it.copy(cameraPermissionStatus = status) }
@@ -98,7 +106,7 @@ class CameraViewModel(
     }
 
     fun requestMicrophonePermission() {
-        viewModelScope.launch {
+        viewModelScope.launch(errorHandler) {
             val granted = cameraService.requestMicrophonePermission()
             val status = if (granted) CameraPermissionStatus.GRANTED else CameraPermissionStatus.DENIED
             updateState { it.copy(microphonePermissionStatus = status) }
@@ -140,7 +148,7 @@ class CameraViewModel(
 
     fun capturePhoto() {
         println("ViewModel: capturePhoto called")
-        viewModelScope.launch {
+        viewModelScope.launch(errorHandler) {
             if (_uiState.value.cameraPermissionStatus != CameraPermissionStatus.GRANTED) {
                 println("ViewModel: Camera permission not granted")
                 updateState { it.copy(error = UiError("Camera permission required")) }
@@ -182,7 +190,7 @@ class CameraViewModel(
     }
 
     fun startVideoRecording() {
-        viewModelScope.launch {
+        viewModelScope.launch(errorHandler) {
             if (_uiState.value.cameraPermissionStatus != CameraPermissionStatus.GRANTED) {
                 updateState { it.copy(error = UiError("Camera permission required")) }
                 return@launch
@@ -202,7 +210,7 @@ class CameraViewModel(
 
     private fun startRecordingTimer() {
         recordingTimerJob?.cancel()
-        recordingTimerJob = viewModelScope.launch {
+        recordingTimerJob = viewModelScope.launch(errorHandler) {
             for (timeRemaining in VIDEO_DURATION_SECONDS downTo 1) {
                 updateState { it.copy(recordingTimeRemaining = timeRemaining) }
                 delay(1000)
@@ -215,7 +223,7 @@ class CameraViewModel(
 
     fun stopVideoRecording() {
         recordingTimerJob?.cancel()
-        viewModelScope.launch {
+        viewModelScope.launch(errorHandler) {
             updateState { it.copy(recordingTimeRemaining = 0) }
             cameraService.stopVideoRecording().fold(
                 onSuccess = { mediaBytes ->
@@ -230,7 +238,7 @@ class CameraViewModel(
 
     fun analyzeMedia(mediaBytes: ByteArray) {
         println("ViewModel: analyzeMedia called with ${mediaBytes.size} bytes")
-        viewModelScope.launch {
+        viewModelScope.launch(errorHandler) {
             updateState { it.copy(isAnalyzing = true, error = null) }
 
             try {

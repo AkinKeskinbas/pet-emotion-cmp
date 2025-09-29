@@ -1,5 +1,6 @@
 package com.keak.petemotions.presentation.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -8,11 +9,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.keak.petemotions.platform.CameraPermissionStatus
 import com.keak.petemotions.platform.PermissionType
+import com.keak.petemotions.platform.createPlaceholderImage
+import com.keak.petemotions.platform.loadImageFromBytes
 import com.keak.petemotions.presentation.navigation.ResultDetailRoute
 import com.keak.petemotions.presentation.viewmodel.CameraViewModel
 import com.keak.petemotions.presentation.viewmodel.CaptureMode
@@ -22,6 +26,7 @@ import org.koin.compose.viewmodel.koinViewModel
 expect fun rememberGalleryLauncher(
     onImageSelected: (ByteArray) -> Unit
 ): () -> Unit
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -221,8 +226,20 @@ fun CameraScreen(
                                 )
                             }
                         }
+                        uiState.capturedPhotoBytes != null -> {
+                            // Show captured photo
+                            val imageBitmap = remember(uiState.capturedPhotoBytes) {
+                                loadImageFromBytes(uiState.capturedPhotoBytes!!) ?: createPlaceholderImage()
+                            }
+                            Image(
+                                bitmap = imageBitmap,
+                                contentDescription = "Captured photo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
                         else -> {
-                            // TODO: Implement actual camera preview
+                            // Camera preview placeholder
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -263,7 +280,7 @@ fun CameraScreen(
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "Camera Preview",
+                                        text = "Tap capture to take photo",
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -277,86 +294,120 @@ fun CameraScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             // Controls
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Flip camera button
-                IconButton(
-                    onClick = { /* TODO: Implement camera flip */ },
-                    modifier = Modifier.size(56.dp)
+            if (uiState.capturedPhotoBytes != null) {
+                // Photo captured - show retake and analyze buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        Icons.Default.FlipCameraAndroid,
-                        contentDescription = "Flip Camera",
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
+                    // Retake button
+                    OutlinedButton(
+                        onClick = {
+                            println("CameraScreen: Retake button clicked")
+                            viewModel.retakePhoto()
+                        }
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Retake")
+                    }
 
-                // Capture button
-                FloatingActionButton(
-                    onClick = {
-                        println("CameraScreen: Capture button clicked, mode=${uiState.captureMode}")
-                        when (uiState.captureMode) {
-                            CaptureMode.PHOTO -> {
-                                println("CameraScreen: Photo mode, permission=${uiState.cameraPermissionStatus}")
-                                if (uiState.cameraPermissionStatus == CameraPermissionStatus.GRANTED) {
-                                    println("CameraScreen: Starting photo capture...")
-                                    viewModel.capturePhoto()
-                                } else {
-                                    println("CameraScreen: Requesting camera permission...")
-                                    cameraLauncher()
+                    // Analyze button
+                    Button(
+                        onClick = {
+                            println("CameraScreen: Analyze button clicked")
+                            viewModel.analyzeCurrentPhoto()
+                        }
+                    ) {
+                        Icon(Icons.Default.Analytics, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Analyze")
+                    }
+                }
+            } else {
+                // Normal camera controls
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Flip camera button
+                    IconButton(
+                        onClick = { /* TODO: Implement camera flip */ },
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.FlipCameraAndroid,
+                            contentDescription = "Flip Camera",
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+
+                    // Capture button
+                    FloatingActionButton(
+                        onClick = {
+                            println("CameraScreen: Capture button clicked, mode=${uiState.captureMode}")
+                            when (uiState.captureMode) {
+                                CaptureMode.PHOTO -> {
+                                    println("CameraScreen: Photo mode, permission=${uiState.cameraPermissionStatus}")
+                                    if (uiState.cameraPermissionStatus == CameraPermissionStatus.GRANTED) {
+                                        println("CameraScreen: Starting photo capture...")
+                                        viewModel.capturePhoto()
+                                    } else {
+                                        println("CameraScreen: Requesting camera permission...")
+                                        cameraLauncher()
+                                    }
                                 }
-                            }
-                            CaptureMode.VIDEO -> {
-                                if (uiState.isRecording) {
-                                    viewModel.stopVideoRecording()
-                                } else {
-                                    // For video, we need both camera and microphone permissions
-                                    when {
-                                        uiState.cameraPermissionStatus != CameraPermissionStatus.GRANTED -> cameraLauncher()
-                                        uiState.microphonePermissionStatus != CameraPermissionStatus.GRANTED -> microphoneLauncher()
-                                        else -> viewModel.startVideoRecording()
+                                CaptureMode.VIDEO -> {
+                                    if (uiState.isRecording) {
+                                        viewModel.stopVideoRecording()
+                                    } else {
+                                        // For video, we need both camera and microphone permissions
+                                        when {
+                                            uiState.cameraPermissionStatus != CameraPermissionStatus.GRANTED -> cameraLauncher()
+                                            uiState.microphonePermissionStatus != CameraPermissionStatus.GRANTED -> microphoneLauncher()
+                                            else -> viewModel.startVideoRecording()
+                                        }
                                     }
                                 }
                             }
-                        }
-                    },
-                    modifier = Modifier.size(72.dp),
-                    containerColor = if (uiState.isRecording)
-                        MaterialTheme.colorScheme.error
-                    else
-                        MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(
-                        imageVector = when {
-                            uiState.captureMode == CaptureMode.PHOTO -> Icons.Default.CameraAlt
-                            uiState.isRecording -> Icons.Default.Stop
-                            else -> Icons.Default.Videocam
                         },
-                        contentDescription = when {
-                            uiState.captureMode == CaptureMode.PHOTO -> "Take Photo"
-                            uiState.isRecording -> "Stop Recording"
-                            else -> "Start Recording"
-                        },
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
+                        modifier = Modifier.size(72.dp),
+                        containerColor = if (uiState.isRecording)
+                            MaterialTheme.colorScheme.error
+                        else
+                            MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(
+                            imageVector = when {
+                                uiState.captureMode == CaptureMode.PHOTO -> Icons.Default.CameraAlt
+                                uiState.isRecording -> Icons.Default.Stop
+                                else -> Icons.Default.Videocam
+                            },
+                            contentDescription = when {
+                                uiState.captureMode == CaptureMode.PHOTO -> "Take Photo"
+                                uiState.isRecording -> "Stop Recording"
+                                else -> "Start Recording"
+                            },
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
 
-                // Gallery button
-                IconButton(
-                    onClick = {
-                        println("CameraScreen: Gallery button clicked")
-                        galleryLauncher()
-                    },
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Icon(
-                        Icons.Default.PhotoLibrary,
-                        contentDescription = "Gallery",
-                        modifier = Modifier.size(32.dp)
-                    )
+                    // Gallery button
+                    IconButton(
+                        onClick = {
+                            println("CameraScreen: Gallery button clicked")
+                            galleryLauncher()
+                        },
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.PhotoLibrary,
+                            contentDescription = "Gallery",
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                 }
             }
 

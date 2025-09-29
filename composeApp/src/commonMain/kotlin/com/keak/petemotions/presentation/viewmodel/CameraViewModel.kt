@@ -25,7 +25,8 @@ data class CameraUiState(
     val cameraPermissionStatus: CameraPermissionStatus = CameraPermissionStatus.NOT_REQUESTED,
     val microphonePermissionStatus: CameraPermissionStatus = CameraPermissionStatus.NOT_REQUESTED,
     val isRecording: Boolean = false,
-    val recordingTimeRemaining: Int = 0
+    val recordingTimeRemaining: Int = 0,
+    val capturedPhotoBytes: ByteArray? = null
 )
 
 enum class CaptureMode {
@@ -145,13 +146,28 @@ class CameraViewModel(
             cameraService.capturePhoto().fold(
                 onSuccess = { mediaBytes ->
                     println("ViewModel: Photo captured, ${mediaBytes.size} bytes")
-                    analyzeMedia(mediaBytes)
+                    // Store captured photo in state for immediate display
+                    updateState { it.copy(capturedPhotoBytes = mediaBytes) }
                 },
                 onFailure = { exception ->
                     println("ViewModel: Photo capture failed: ${exception.message}")
                     updateState { it.copy(error = UiError("Failed to capture photo: ${exception.message}")) }
                 }
             )
+        }
+    }
+
+    fun retakePhoto() {
+        println("ViewModel: retakePhoto called")
+        updateState { it.copy(capturedPhotoBytes = null) }
+    }
+
+    fun analyzeCurrentPhoto() {
+        println("ViewModel: analyzeCurrentPhoto called")
+        _uiState.value.capturedPhotoBytes?.let { photoBytes ->
+            analyzeMedia(photoBytes)
+        } ?: run {
+            updateState { it.copy(error = UiError("No photo to analyze")) }
         }
     }
 

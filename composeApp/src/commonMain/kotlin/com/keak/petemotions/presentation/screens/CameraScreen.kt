@@ -30,6 +30,18 @@ fun CameraScreen(
     viewModel: CameraViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Show error messages in snackbar
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { error ->
+            snackbarHostState.showSnackbar(
+                message = error.message,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearError()
+        }
+    }
 
     // Permission launchers
     val cameraLauncher = rememberPermissionLauncher(PermissionType.CAMERA) { granted ->
@@ -44,9 +56,15 @@ fun CameraScreen(
         viewModel.analyzeSelectedImage(imageBytes)
     }
 
+    // Debug permission status
+    LaunchedEffect(uiState.cameraPermissionStatus) {
+        println("CameraScreen: Camera permission status = ${uiState.cameraPermissionStatus}")
+    }
+
     // Handle navigation events
     LaunchedEffect(uiState.navigationEvent) {
         uiState.navigationEvent?.let { analysisId ->
+            println("CameraScreen: Navigating to result with ID: $analysisId")
             navController.navigate(ResultDetailRoute(analysisId))
             viewModel.clearNavigationEvent()
         }
@@ -68,7 +86,8 @@ fun CameraScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -275,11 +294,15 @@ fun CameraScreen(
                 // Capture button
                 FloatingActionButton(
                     onClick = {
+                        println("CameraScreen: Capture button clicked, mode=${uiState.captureMode}")
                         when (uiState.captureMode) {
                             CaptureMode.PHOTO -> {
+                                println("CameraScreen: Photo mode, permission=${uiState.cameraPermissionStatus}")
                                 if (uiState.cameraPermissionStatus == CameraPermissionStatus.GRANTED) {
+                                    println("CameraScreen: Starting photo capture...")
                                     viewModel.capturePhoto()
                                 } else {
+                                    println("CameraScreen: Requesting camera permission...")
                                     cameraLauncher()
                                 }
                             }
@@ -320,7 +343,10 @@ fun CameraScreen(
 
                 // Gallery button
                 IconButton(
-                    onClick = galleryLauncher,
+                    onClick = {
+                        println("CameraScreen: Gallery button clicked")
+                        galleryLauncher()
+                    },
                     modifier = Modifier.size(56.dp)
                 ) {
                     Icon(

@@ -20,12 +20,14 @@ actual fun rememberGalleryLauncher(
             try {
                 context.contentResolver.openInputStream(it)?.use { inputStream ->
                     val bytes = inputStream.readBytes()
+                    println("Gallery image selected: ${bytes.size} bytes")
                     onImageSelected(bytes)
                 }
             } catch (e: Exception) {
-                // Handle error
+                println("Error loading gallery image: ${e.message}")
+                e.printStackTrace()
             }
-        }
+        } ?: println("No image selected from gallery")
     }
 
     return {

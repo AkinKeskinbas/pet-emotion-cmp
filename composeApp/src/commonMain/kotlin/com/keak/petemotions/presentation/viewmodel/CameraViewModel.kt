@@ -118,7 +118,12 @@ class CameraViewModel(
         updateState { it.copy(error = UiError(message)) }
     }
 
+    fun clearError() {
+        updateState { it.copy(error = null) }
+    }
+
     fun analyzeSelectedImage(imageBytes: ByteArray) {
+        println("ViewModel: analyzeSelectedImage called with ${imageBytes.size} bytes")
         // Set capture mode to photo for selected images
         updateState { it.copy(captureMode = CaptureMode.PHOTO) }
         // Use the existing analyzeMedia function
@@ -126,17 +131,22 @@ class CameraViewModel(
     }
 
     fun capturePhoto() {
+        println("ViewModel: capturePhoto called")
         viewModelScope.launch {
             if (_uiState.value.cameraPermissionStatus != CameraPermissionStatus.GRANTED) {
+                println("ViewModel: Camera permission not granted")
                 updateState { it.copy(error = UiError("Camera permission required")) }
                 return@launch
             }
 
+            println("ViewModel: Calling camera service...")
             cameraService.capturePhoto().fold(
                 onSuccess = { mediaBytes ->
+                    println("ViewModel: Photo captured, ${mediaBytes.size} bytes")
                     analyzeMedia(mediaBytes)
                 },
                 onFailure = { exception ->
+                    println("ViewModel: Photo capture failed: ${exception.message}")
                     updateState { it.copy(error = UiError("Failed to capture photo: ${exception.message}")) }
                 }
             )
@@ -191,6 +201,7 @@ class CameraViewModel(
     }
 
     fun analyzeMedia(mediaBytes: ByteArray) {
+        println("ViewModel: analyzeMedia called with ${mediaBytes.size} bytes")
         viewModelScope.launch {
             updateState { it.copy(isAnalyzing = true, error = null) }
 

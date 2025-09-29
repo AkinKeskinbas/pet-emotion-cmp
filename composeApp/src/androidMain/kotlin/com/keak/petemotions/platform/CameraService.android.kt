@@ -3,6 +3,7 @@ package com.keak.petemotions.platform
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
@@ -53,62 +54,40 @@ class AndroidCameraService : CameraService {
     }
 
     override suspend fun capturePhoto(): Result<ByteArray> {
+        println("AndroidCameraService: capturePhoto called")
         return try {
-            suspendCancellableCoroutine { continuation ->
-                val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-                cameraProviderFuture.addListener({
-                    try {
-                        val cameraProvider = cameraProviderFuture.get()
-
-                        // Image capture use case
-                        val imageCapture = ImageCapture.Builder().build()
-
-                        // Image analyzer for getting bytes
-                        val imageAnalyzer = ImageAnalysis.Builder()
-                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                            .build()
-
-                        imageAnalyzer.setAnalyzer(ContextCompat.getMainExecutor(context)) { imageProxy ->
-                            val buffer = imageProxy.planes[0].buffer
-                            val bytes = ByteArray(buffer.remaining())
-                            buffer.get(bytes)
-                            imageProxy.close()
-
-                            // Convert YUV to simple RGB bytes (placeholder)
-                            continuation.resume(Result.success(bytes))
-                        }
-
-                        // For now, use a simple placeholder that works
-                        val dummyImageBytes = generatePlaceholderImage()
-                        continuation.resume(Result.success(dummyImageBytes))
-
-                    } catch (e: Exception) {
-                        continuation.resume(Result.failure(e))
-                    }
-                }, ContextCompat.getMainExecutor(context))
-            }
+            // For now, return a placeholder image that can be properly processed
+            val placeholderBytes = generatePlaceholderImage()
+            println("AndroidCameraService: Generated placeholder image with ${placeholderBytes.size} bytes")
+            Result.success(placeholderBytes)
         } catch (e: Exception) {
+            println("AndroidCameraService: Error generating placeholder image: ${e.message}")
             Result.failure(e)
         }
     }
 
     private fun generatePlaceholderImage(): ByteArray {
-        // Generate a simple 100x100 RGB image for testing
-        val width = 100
-        val height = 100
-        val imageData = ByteArray(width * height * 3) // RGB
+        // Create a proper JPEG image that can be decoded by BitmapFactory
+        val width = 300
+        val height = 200
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
 
-        // Create a simple gradient pattern
+        // Create gradient pattern
+        val pixels = IntArray(width * height)
         for (y in 0 until height) {
             for (x in 0 until width) {
-                val index = (y * width + x) * 3
-                imageData[index] = (x * 255 / width).toByte()     // R
-                imageData[index + 1] = (y * 255 / height).toByte() // G
-                imageData[index + 2] = 128.toByte()                // B
+                val r = (x * 255 / width).coerceIn(0, 255)
+                val g = (y * 255 / height).coerceIn(0, 255)
+                val b = 128
+                pixels[y * width + x] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
             }
         }
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
 
-        return imageData
+        // Convert to JPEG bytes
+        val outputStream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+        return outputStream.toByteArray()
     }
 
     override suspend fun startVideoRecording(): Result<Unit> {

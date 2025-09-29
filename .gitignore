@@ -1,0 +1,68 @@
+# Gradle files
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local configuration files
+local.properties
+gradle.properties.local
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Kotlin
+.kotlin/
+
+# Android Studio Navigation editor temp files
+.navigation/
+
+# Android Studio captures folder
+captures/
+
+# Keystore files
+*.jks
+*.keystore
+
+# Generated files
+bin/
+gen/
+out/
+
+# Build artifacts
+*.aab
+*.apk
+release/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Xcode
+xcuserdata/
+build/
+DerivedData/
+*.xcworkspace/!default.xcworkspace
+
+# iOS generated files
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# CocoaPods
+Pods/
+
+# Logs
+*.log
+
+# Development files
+development.docx
+AGENTS.md
+
+# API Keys (never commit these)
+**/apikey.txt
+**/secrets.properties

@@ -1,0 +1,101 @@
+[versions]
+agp = "8.7.3"
+android-compileSdk = "35"
+android-minSdk = "24"
+android-targetSdk = "35"
+androidx-activity = "1.10.1"
+androidx-appcompat = "1.7.1"
+androidx-core = "1.16.0"
+androidx-espresso = "3.6.1"
+androidx-lifecycle = "2.9.1"
+androidx-testExt = "1.2.1"
+composeMultiplatform = "1.9.0"
+junit = "4.13.2"
+kotlin = "2.2.0"
+
+atomicfu = "0.23.1"
+
+koin = "4.1.0"
+koinCompose = "4.1.0"
+koinComposeVM = "4.1.0"
+ktor = "3.2.3"
+androidx-navigation = "2.9.0"
+bottomSheet = "0.1.5"
+
+purchases-kmp = "2.1.1+17.0.0"
+datetime = "0.6.0"
+camerax = "1.5.0"
+permission = "0.38.0"
+uuid = "0.8.2"
+charts = "1.2.0"
+datastore = "1.1.1"
+
+
+[libraries]
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+junit = { module = "junit:junit", version.ref = "junit" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
+androidx-testExt-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-testExt" }
+androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
+androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koinCompose" }
+koin-compose-nav = { module = "io.insert-koin:koin-compose-viewmodel-navigation", version.ref = "koinCompose" }
+koin-compose-vm = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koinComposeVM" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+
+kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "atomicfu" }
+
+androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "androidx-navigation" }
+sky-dove-bottom-sheet = { module = "com.github.skydoves:flexible-bottomsheet-material3", version.ref = "bottomSheet"}
+
+# DateTime
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "datetime" }
+
+# UUID
+uuid = { module = "com.benasher44:uuid", version.ref = "uuid" }
+
+# CameraX (Android)
+androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
+androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
+
+# Permissions
+permissions-compose = { module = "dev.icerock.moko:permissions-compose", version.ref = "permission" }
+
+# DataStore
+androidx-datastore-preferences-core = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastore" }
+
+# Charts
+vico-compose = { module = "com.patrykandpatrick.vico:compose", version.ref = "charts" }
+vico-compose-m3 = { module = "com.patrykandpatrick.vico:compose-m3", version.ref = "charts" }
+vico-core = { module = "com.patrykandpatrick.vico:core", version.ref = "charts" }
+
+# Required
+purchases-core = { module = "com.revenuecat.purchases:purchases-kmp-core", version.ref = "purchases-kmp" }
+# Optional: adds extension properties representing timestamps as kotlinx-datetime Instants.
+purchases-datetime = { module = "com.revenuecat.purchases:purchases-kmp-datetime", version.ref = "purchases-kmp" }
+# Optional: adds suspending functions that return Arrow's Either to indicate success / failure.
+purchases-either = { module = "com.revenuecat.purchases:purchases-kmp-either", version.ref = "purchases-kmp" }
+# Optional: adds suspending functions that return kotlin.Result to indicate success / failure.
+purchases-result = { module = "com.revenuecat.purchases:purchases-kmp-result", version.ref = "purchases-kmp" }
+purchases-ui = { module = "com.revenuecat.purchases:purchases-kmp-ui", version.ref = "purchases-kmp" }
+
+[plugins]
+androidApplication = { id = "com.android.application", version.ref = "agp" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

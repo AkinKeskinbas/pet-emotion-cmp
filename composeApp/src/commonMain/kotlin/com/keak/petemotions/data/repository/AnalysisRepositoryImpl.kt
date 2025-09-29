@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.keak.petemotions.data.model.AnalysisRecord
 import com.keak.petemotions.data.model.AnalysisResult
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -41,12 +42,21 @@ class AnalysisRepositoryImpl(
     }
 
     override suspend fun getAnalysisRecordById(id: String): AnalysisRecord? {
-        return getAllAnalysisRecords().map { records ->
-            records.find { it.id == id }
-        }.let { flow ->
-            var result: AnalysisRecord? = null
-            flow.collect { result = it }
+        println("AnalysisRepositoryImpl: getAnalysisRecordById called with ID: $id")
+        return try {
+            val preferences = dataStore.data.first()
+            val recordsJson = preferences[ANALYSIS_RECORDS_KEY] ?: "[]"
+            println("AnalysisRepositoryImpl: Raw JSON from datastore: $recordsJson")
+
+            val records = json.decodeFromString<List<AnalysisRecord>>(recordsJson)
+            println("AnalysisRepositoryImpl: Found ${records.size} total records")
+
+            val result = records.find { it.id == id }
+            println("AnalysisRepositoryImpl: Search result for ID $id: ${result?.emotion ?: "NOT FOUND"}")
             result
+        } catch (e: Exception) {
+            println("AnalysisRepositoryImpl: Error getting record by ID: ${e.message}")
+            null
         }
     }
 

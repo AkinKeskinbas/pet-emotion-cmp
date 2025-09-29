@@ -36,15 +36,21 @@ fun ResultDetailScreen(
     var error by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(analysisRecordId) {
+        println("ResultDetailScreen: Loading analysis record with ID: $analysisRecordId")
         try {
             analysisRecord = analysisRepository.getAnalysisRecordById(analysisRecordId)
             if (analysisRecord == null) {
+                println("ResultDetailScreen: Analysis record not found for ID: $analysisRecordId")
                 error = "Analysis record not found"
+            } else {
+                println("ResultDetailScreen: Analysis record loaded successfully: ${analysisRecord!!.emotion}")
             }
         } catch (e: Exception) {
+            println("ResultDetailScreen: Error loading analysis: ${e.message}")
             error = "Failed to load analysis: ${e.message}"
         } finally {
             isLoading = false
+            println("ResultDetailScreen: Loading finished. Error: $error, Record: ${analysisRecord != null}")
         }
     }
 

@@ -10,21 +10,24 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
+import kotlin.random.Random
 
 class BackendApiService(
     private val baseUrl: String = "http://localhost:8080"
 ) {
-    private val client = HttpClient {
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-            })
-        }
-        install(Logging) {
-            level = LogLevel.INFO
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
+
+    private val client by lazy {
+        HttpClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+            install(Logging) {
+                level = LogLevel.INFO
+            }
         }
     }
 
@@ -32,11 +35,13 @@ class BackendApiService(
 
     suspend fun register(name: String? = null, species: String? = null): Result<RegisterResponse> {
         return try {
+            println("Backend: Attempting registration to $baseUrl")
             val request = RegisterRequest(name = name, species = species)
             val response = client.post("$baseUrl/auth/register") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
+
 
             if (response.status.isSuccess()) {
                 val registerResponse = response.body<RegisterResponse>()
@@ -121,8 +126,20 @@ class BackendApiService(
         return result.toString()
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     private fun generateUuid(): String {
-        return Uuid.random().toString()
+        // Simple UUID v4 implementation for common platforms
+        val chars = "0123456789abcdef"
+        val uuid = StringBuilder(36)
+
+        for (i in 0..35) {
+            when (i) {
+                8, 13, 18, 23 -> uuid.append('-')
+                14 -> uuid.append('4') // Version 4
+                19 -> uuid.append(chars[8 + Random.nextInt(4)]) // Variant bits
+                else -> uuid.append(chars[Random.nextInt(16)])
+            }
+        }
+
+        return uuid.toString()
     }
 }

@@ -14,11 +14,11 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class AnalysisRepositoryImpl(
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val backendApiService: BackendApiService
 ) : AnalysisRepository {
 
     private val json = Json { ignoreUnknownKeys = true }
-    private val backendApiService = BackendApiService()
 
     companion object {
         private val ANALYSIS_RECORDS_KEY = stringPreferencesKey("analysis_records_list")

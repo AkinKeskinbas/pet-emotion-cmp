@@ -1,12 +1,15 @@
 package com.keak.petemotions.presentation.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.keak.petemotions.data.api.InsufficientCoinsException
+import com.keak.petemotions.data.model.AnalysisCost
 import com.keak.petemotions.data.model.AnalysisRecord
 import com.keak.petemotions.data.model.MediaType
 import com.keak.petemotions.data.model.Pet
 import com.keak.petemotions.data.repository.AnalysisRepository
 import com.keak.petemotions.data.repository.PetRepository
 import com.keak.petemotions.data.repository.PreferencesRepository
+import com.keak.petemotions.data.service.CoinService
 import com.keak.petemotions.platform.CameraService
 import com.keak.petemotions.platform.CameraPermissionStatus
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -27,7 +30,9 @@ data class CameraUiState(
     val microphonePermissionStatus: CameraPermissionStatus = CameraPermissionStatus.NOT_REQUESTED,
     val isRecording: Boolean = false,
     val recordingTimeRemaining: Int = 0,
-    val capturedPhotoBytes: ByteArray? = null
+    val capturedPhotoBytes: ByteArray? = null,
+    val coinError: String? = null, // Insufficient coins error message
+    val paywallNavigationEvent: Boolean = false // Trigger to auto-open paywall
 )
 
 enum class CaptureMode {
@@ -38,7 +43,8 @@ class CameraViewModel(
     private val analysisRepository: AnalysisRepository,
     private val petRepository: PetRepository,
     private val preferencesRepository: PreferencesRepository,
-    private val cameraService: CameraService
+    private val cameraService: CameraService,
+    private val coinService: CoinService
 ) : BaseViewModel<CameraUiState>(CameraUiState()) {
 
     private var recordingTimerJob: Job? = null
@@ -267,13 +273,14 @@ class CameraViewModel(
                             emotion = result.emotion,
                             confidence = result.confidence,
                             summary = result.summary,
-                            detailsBody = "${result.details.bodyLanguage}\n\n${result.details.vocalization}\n\n${result.details.context}",
+                            detailsBody = "Body Language\n${result.details.bodyLanguage}\n\nVocalization\n${result.details.vocalization}\n\nContext\n${result.details.context}",
                             tags = result.tags
                         )
 
                         // Save to database
                         analysisRepository.insertAnalysisRecord(record)
 
+                        // Backend handles coin deduction automatically
                         updateState {
                             it.copy(
                                 isAnalyzing = false,
@@ -281,13 +288,33 @@ class CameraViewModel(
                                 navigationEvent = record.id
                             )
                         }
+
+                        // Backend analysis result doesn't contain coin info yet
+                        // This will be added when backend implements coin tracking
+                        println("CameraViewModel: Analysis completed successfully")
                     },
-                    onFailure = { exception ->
-                        updateState {
-                            it.copy(
-                                isAnalyzing = false,
-                                error = UiError("Analysis failed: ${exception.message}")
-                            )
+                    onFailure = { exception: Throwable ->
+                        when (exception) {
+                            is InsufficientCoinsException -> {
+                                val coinErrorMessage = exception.message ?: "Insufficient coins for analysis"
+                                println("CameraViewModel: Insufficient coins error: $coinErrorMessage")
+                                updateState {
+                                    it.copy(
+                                        isAnalyzing = false,
+                                        coinError = coinErrorMessage,
+                                        paywallNavigationEvent = true
+                                    )
+                                }
+                            }
+                            else -> {
+                                val errorMessage = exception.message ?: "Analysis failed. Please try again."
+                                updateState {
+                                    it.copy(
+                                        isAnalyzing = false,
+                                        error = UiError(errorMessage)
+                                    )
+                                }
+                            }
                         }
                     }
                 )
@@ -296,7 +323,7 @@ class CameraViewModel(
                 updateState {
                     it.copy(
                         isAnalyzing = false,
-                        error = UiError("Failed to analyze media: ${e.message}")
+                        error = UiError(e.message ?: "Something went wrong. Please try again.")
                     )
                 }
             }
@@ -305,6 +332,14 @@ class CameraViewModel(
 
     fun dismissError() {
         updateState { it.copy(error = null) }
+    }
+
+    fun dismissCoinError() {
+        updateState { it.copy(coinError = null) }
+    }
+
+    fun clearPaywallNavigationEvent() {
+        updateState { it.copy(paywallNavigationEvent = false) }
     }
 
     fun clearNavigationEvent() {

@@ -5,10 +5,15 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.keak.petemotions.data.model.CoinBalance
+import com.keak.petemotions.data.model.CoinTransaction
 import com.keak.petemotions.data.model.UserPrefs
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 
 class PreferencesRepositoryImpl(
     private val dataStore: DataStore<Preferences>
@@ -19,6 +24,13 @@ class PreferencesRepositoryImpl(
         private val LANGUAGE_KEY = stringPreferencesKey("language")
         private val HAS_COMPLETED_ONBOARDING_KEY = booleanPreferencesKey("has_completed_onboarding")
         private val OPENAI_API_KEY = stringPreferencesKey("openai_api_key")
+        private val COIN_BALANCE_KEY = stringPreferencesKey("coin_balance")
+        private val COIN_HISTORY_KEY = stringPreferencesKey("coin_history")
+    }
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
     }
 
     override suspend fun getUserPrefs(): UserPrefs {
@@ -77,6 +89,48 @@ class PreferencesRepositoryImpl(
                 preferences[OPENAI_API_KEY] = apiKey
             } else {
                 preferences.remove(OPENAI_API_KEY)
+            }
+        }
+    }
+
+    override suspend fun saveCoinBalance(balance: CoinBalance) {
+        dataStore.edit { preferences ->
+            preferences[COIN_BALANCE_KEY] = json.encodeToString(balance)
+        }
+    }
+
+    override fun getCoinBalance(): Flow<CoinBalance> {
+        return dataStore.data.map { preferences ->
+            val balanceJson = preferences[COIN_BALANCE_KEY]
+            if (balanceJson != null) {
+                try {
+                    json.decodeFromString<CoinBalance>(balanceJson)
+                } catch (e: Exception) {
+                    CoinBalance() // Return default if parsing fails
+                }
+            } else {
+                CoinBalance() // Return default if not found
+            }
+        }
+    }
+
+    override suspend fun saveCoinHistory(history: List<CoinTransaction>) {
+        dataStore.edit { preferences ->
+            preferences[COIN_HISTORY_KEY] = json.encodeToString(history)
+        }
+    }
+
+    override fun getCoinHistory(): Flow<List<CoinTransaction>> {
+        return dataStore.data.map { preferences ->
+            val historyJson = preferences[COIN_HISTORY_KEY]
+            if (historyJson != null) {
+                try {
+                    json.decodeFromString<List<CoinTransaction>>(historyJson)
+                } catch (e: Exception) {
+                    emptyList() // Return empty list if parsing fails
+                }
+            } else {
+                emptyList() // Return empty list if not found
             }
         }
     }

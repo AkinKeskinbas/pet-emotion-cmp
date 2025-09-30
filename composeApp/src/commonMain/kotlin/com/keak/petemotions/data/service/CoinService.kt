@@ -1,0 +1,273 @@
+package com.keak.petemotions.data.service
+
+import com.keak.petemotions.data.model.CoinPackage
+import com.keak.petemotions.data.model.CoinPackages
+import com.revenuecat.purchases.kmp.Purchases
+import com.revenuecat.purchases.kmp.ktx.SuccessfulPurchase
+import com.revenuecat.purchases.kmp.ktx.awaitCustomerInfo
+import com.revenuecat.purchases.kmp.ktx.awaitOfferings
+import com.revenuecat.purchases.kmp.ktx.awaitPurchase
+import com.revenuecat.purchases.kmp.ktx.awaitRestore
+import com.revenuecat.purchases.kmp.models.CustomerInfo as RevenueCatCustomerInfo
+import com.revenuecat.purchases.kmp.models.Offerings as RevenueCatOfferings
+import com.revenuecat.purchases.kmp.models.Package as RevenueCatPackage
+import com.revenuecat.purchases.kmp.models.PackageType
+import com.revenuecat.purchases.kmp.models.PurchasesException
+import com.revenuecat.purchases.kmp.models.PurchasesTransactionException
+import com.revenuecat.purchases.kmp.models.Store
+import kotlin.coroutines.cancellation.CancellationException
+
+data class CoinPackageOption(
+    val coinPackage: CoinPackage,
+    val revenueCatPackage: RevenueCatPackage?
+)
+
+interface CoinService {
+    suspend fun purchaseCoins(packageToPurchase: RevenueCatPackage): Result<PurchaseResult>
+    suspend fun restorePurchases(): Result<RevenueCatCustomerInfo>
+    suspend fun validatePurchase(transactionId: String, productId: String): Result<Int>
+    suspend fun getAvailablePackages(): Result<List<CoinPackageOption>>
+}
+
+class CoinServiceImpl(
+    private val revenueCatService: RevenueCatService
+) : CoinService {
+
+    override suspend fun purchaseCoins(packageToPurchase: RevenueCatPackage): Result<PurchaseResult> {
+        return revenueCatService.purchasePackage(packageToPurchase)
+    }
+
+    override suspend fun restorePurchases(): Result<RevenueCatCustomerInfo> {
+        return revenueCatService.restorePurchases()
+    }
+
+    override suspend fun validatePurchase(transactionId: String, productId: String): Result<Int> {
+        return try {
+            val knownPackages = CoinPackages.ALL_PACKAGES +
+                defaultCoinPackageOptions().map { it.coinPackage }
+
+            val coinPackage = knownPackages.find { it.revenueCatProductId == productId }
+                ?: return Result.failure(Exception("Unknown product"))
+
+            val totalCoins = coinPackage.coinAmount +
+                (coinPackage.coinAmount * coinPackage.bonusPercentage / 100)
+
+            Result.success(totalCoins)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getAvailablePackages(): Result<List<CoinPackageOption>> {
+        return try {
+            revenueCatService.getOfferings().fold(
+                onSuccess = { offerings ->
+                    val rcPackages = offerings.current?.availablePackages.orEmpty()
+
+                    if (rcPackages.isEmpty()) {
+                        println("CoinService: No packages found in RevenueCat current offering, using fallback packages")
+                        Result.success(defaultCoinPackageOptions())
+                    } else {
+                        val mapped = rcPackages.map { it.toCoinPackageOption() }
+                        println("CoinService: Loaded ${mapped.size} packages from RevenueCat")
+                        mapped.forEach { pkg ->
+                            val info = pkg.coinPackage
+                            val totalCoins = info.coinAmount + (info.coinAmount * info.bonusPercentage / 100)
+                            println("  - ${info.id}: $totalCoins coins (${info.coinAmount} base + ${info.bonusPercentage}% bonus) for ${info.price}")
+                        }
+                        Result.success(mapped)
+                    }
+                },
+                onFailure = { exception ->
+                    println("CoinService: Failed to load RevenueCat offerings: ${exception.message}")
+                    Result.success(defaultCoinPackageOptions())
+                }
+            )
+        } catch (e: Exception) {
+            println("CoinService: Error loading packages: ${e.message}")
+            Result.success(defaultCoinPackageOptions())
+        }
+    }
+}
+
+interface RevenueCatService {
+    suspend fun getCustomerInfo(): RevenueCatCustomerInfo
+    suspend fun purchasePackage(packageToPurchase: RevenueCatPackage): Result<PurchaseResult>
+    suspend fun restorePurchases(): Result<RevenueCatCustomerInfo>
+    suspend fun getOfferings(): Result<RevenueCatOfferings>
+}
+
+class RevenueCatServiceImpl : RevenueCatService {
+
+    init {
+        println("RevenueCatServiceImpl: Using existing RevenueCat configuration")
+    }
+
+    override suspend fun getCustomerInfo(): RevenueCatCustomerInfo {
+        return try {
+            Purchases.sharedInstance.awaitCustomerInfo()
+        } catch (e: PurchasesException) {
+            println("RevenueCat: Failed to get customer info: ${e.message}")
+            throw e
+        } catch (e: Exception) {
+            println("RevenueCat: Unexpected error getting customer info: ${e.message}")
+            throw e
+        }
+    }
+
+    override suspend fun purchasePackage(
+        packageToPurchase: RevenueCatPackage
+    ): Result<PurchaseResult> {
+        return try {
+            val purchase = Purchases.sharedInstance.awaitPurchase(packageToPurchase)
+            Result.success(purchase.toPurchaseResult())
+        } catch (e: PurchasesTransactionException) {
+            println("RevenueCat: Purchase failed with transaction error: ${e.error.message}")
+            Result.failure(e)
+        } catch (e: CancellationException) {
+            println("RevenueCat: Purchase cancelled")
+            Result.failure(e)
+        } catch (e: Exception) {
+            println("RevenueCat: Purchase failed: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun restorePurchases(): Result<RevenueCatCustomerInfo> {
+        return try {
+            val customerInfo = Purchases.sharedInstance.awaitRestore()
+            Result.success(customerInfo)
+        } catch (e: PurchasesException) {
+            println("RevenueCat: Restore failed: ${e.message}")
+            Result.failure(e)
+        } catch (e: Exception) {
+            println("RevenueCat: Unexpected error restoring purchases: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getOfferings(): Result<RevenueCatOfferings> {
+        return try {
+            val offerings = Purchases.sharedInstance.awaitOfferings()
+            Result.success(offerings)
+        } catch (e: PurchasesException) {
+            println("RevenueCat: Failed to fetch offerings: ${e.message}")
+            Result.failure(e)
+        } catch (e: Exception) {
+            println("RevenueCat: Unexpected error fetching offerings: ${e.message}")
+            Result.failure(e)
+        }
+    }
+}
+
+data class PurchaseResult(
+    val transactionId: String,
+    val productId: String,
+    val purchaseDateMillis: Long,
+    val platform: String,
+    val receipt: String? = null,
+    val customerInfo: RevenueCatCustomerInfo? = null
+)
+
+private fun RevenueCatPackage.toCoinPackageOption(): CoinPackageOption {
+    val productId = storeProduct.id
+    val coinAmount = getCoinAmountFromProductId(productId)
+    val bonusPercentage = getBonusPercentageFromProductId(productId)
+    val coinPackage = CoinPackage(
+        id = identifier,
+        coinAmount = coinAmount,
+        price = storeProduct.price.formatted,
+        revenueCatProductId = productId,
+        isPopular = packageType.isPopular() || identifier.contains("popular", ignoreCase = true),
+        bonusPercentage = bonusPercentage
+    )
+    return CoinPackageOption(
+        coinPackage = coinPackage,
+        revenueCatPackage = this
+    )
+}
+
+private fun PackageType.isPopular(): Boolean = when (this) {
+    PackageType.ANNUAL,
+    PackageType.THREE_MONTH,
+    PackageType.SIX_MONTH -> true
+    else -> false
+}
+
+private fun defaultCoinPackageOptions(): List<CoinPackageOption> =
+    CoinPackages.ALL_PACKAGES.map { CoinPackageOption(it, null) }
+
+private fun getCoinAmountFromProductId(productId: String): Int {
+    CoinPackages.ALL_PACKAGES.firstOrNull {
+        it.revenueCatProductId.equals(productId, ignoreCase = true)
+    }?.let { return it.coinAmount }
+
+    val normalized = productId.lowercase()
+    amountHints.firstOrNull { normalized.contains(it.first) }?.let { return it.second }
+
+    return numberRegex.find(normalized)?.value?.toIntOrNull() ?: CoinPackages.STARTER.coinAmount
+}
+
+private fun getBonusPercentageFromProductId(productId: String): Int {
+    CoinPackages.ALL_PACKAGES.firstOrNull {
+        it.revenueCatProductId.equals(productId, ignoreCase = true)
+    }?.let { return it.bonusPercentage }
+
+    val normalized = productId.lowercase()
+    bonusHints.firstOrNull { normalized.contains(it.first) }?.let { return it.second }
+
+    return 0
+}
+
+private val amountHints = listOf(
+    "coins_mini" to 25,
+    "coin_mini" to 25,
+    "mini" to 25,
+    "coins_midi" to 100,
+    "coin_midi" to 100,
+    "midi" to 100,
+    "coins_mega" to 400,
+    "coin_mega" to 400,
+    "mega" to 400,
+    "coins_250" to 250,
+    "coins_100" to 100,
+    "coins_50" to 50,
+    "coins_10" to 10
+)
+
+private val bonusHints = listOf(
+    "coins_50" to 20,
+    "coins_100" to 30,
+    "coins_250" to 40,
+    "midi" to 25,
+    "mega" to 50
+)
+
+private val numberRegex = Regex("(\\d+)(?!.*\\d)")
+
+private fun SuccessfulPurchase.toPurchaseResult(): PurchaseResult {
+    val transactionId = storeTransaction.transactionId.orEmpty()
+    val productId = storeTransaction.productIds.firstOrNull().orEmpty()
+    val platform = mapStoreToPlatform(Purchases.sharedInstance.store)
+    return PurchaseResult(
+        transactionId = transactionId,
+        productId = productId,
+        purchaseDateMillis = storeTransaction.purchaseTime,
+        platform = platform,
+        receipt = null,
+        customerInfo = customerInfo
+    )
+}
+
+private fun mapStoreToPlatform(store: Store): String = when (store) {
+    Store.APP_STORE,
+    Store.MAC_APP_STORE -> "ios"
+    Store.PLAY_STORE,
+    Store.AMAZON,
+    Store.RC_BILLING -> "android"
+    Store.STRIPE -> "stripe"
+    Store.PROMOTIONAL -> "promo"
+    Store.EXTERNAL,
+    Store.UNKNOWN_STORE -> "unknown"
+    else -> store.name.lowercase()
+}

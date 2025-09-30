@@ -38,6 +38,12 @@ fun HomeScreen(
                     )
                 },
                 actions = {
+                    // Coin Balance Display
+                    CoinBalanceChip(
+                        coinBalance = uiState.coinBalance.balance,
+                        onClick = { navController.navigate(PaywallRoute) }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     IconButton(onClick = { navController.navigate(MyPetsRoute) }) {
                         Icon(Icons.Default.Pets, contentDescription = "My Pets")
                     }
@@ -57,6 +63,14 @@ fun HomeScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // Coin Balance Card
+            item {
+                CoinBalanceCard(
+                    coinBalance = uiState.coinBalance.balance,
+                    onClick = { navController.navigate(PaywallRoute) }
+                )
             }
 
             // Premium banner or shortcuts
@@ -358,10 +372,10 @@ fun BottomNavigationBar(navController: NavController) {
             onClick = { navController.navigate(HomeRoute) }
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.CameraAlt, contentDescription = "Camera") },
-            label = { Text("Camera") },
+            icon = { Icon(Icons.Default.Compare, contentDescription = "Compare") },
+            label = { Text("Compare") },
             selected = false,
-            onClick = { navController.navigate(CameraRoute) }
+            onClick = { navController.navigate(CompareRoute) }
         )
         NavigationBarItem(
             icon = { Icon(Icons.Default.History, contentDescription = "History") },
@@ -389,6 +403,83 @@ private fun getEmotionEmoji(emotion: String): String {
         "sad" -> "😢"
         "excited" -> "🤩"
         else -> "😐"
+    }
+}
+
+@Composable
+fun CoinBalanceChip(coinBalance: Int, onClick: () -> Unit) {
+    AssistChip(
+        onClick = onClick,
+        label = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "🪙",
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Text(
+                    text = coinBalance.toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        },
+        colors = AssistChipDefaults.assistChipColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            labelColor = MaterialTheme.colorScheme.onSecondaryContainer
+        )
+    )
+}
+
+@Composable
+fun CoinBalanceCard(coinBalance: Int, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Your Coins",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = "Use coins to analyze your pet's emotions",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "🪙",
+                    style = MaterialTheme.typography.headlineMedium
+                )
+                Text(
+                    text = coinBalance.toString(),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
     }
 }
 

@@ -5,11 +5,11 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDisplayName</key>
-	<string>PetEmotions</string>
+	<string>PawPaw</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.keak.petemotions</string>
 	<key>CFBundleName</key>
-	<string>PetEmotions</string>
+	<string>PawPaw</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>

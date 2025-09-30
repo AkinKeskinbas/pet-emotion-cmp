@@ -1,7 +1,9 @@
 package com.keak.petemotions.presentation.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -67,13 +69,15 @@ fun PermissionsScreen(
             )
         }
     ) { paddingValues ->
+        val scrollState = rememberScrollState()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(scrollState)
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -98,6 +102,8 @@ fun PermissionsScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Title and description
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -118,6 +124,8 @@ fun PermissionsScreen(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Permissions list
             Column(
@@ -148,11 +156,21 @@ fun PermissionsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Privacy note
+            Text(
+                text = "Your privacy matters. All analysis is performed locally on your device, and your photos are never uploaded to our servers.",
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
 
             // Continue button
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(bottom = 24.dp)
             ) {
                 Button(
                     onClick = onContinue,
@@ -180,13 +198,8 @@ fun PermissionsScreen(
                 }
             }
 
-            // Privacy note
-            Text(
-                text = "Your privacy matters. All analysis is performed locally on your device, and your photos are never uploaded to our servers.",
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
+            // Extra bottom spacing to ensure button is always visible
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

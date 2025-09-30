@@ -70,12 +70,12 @@ fun ResultDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: Implement share */ }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
-                    }
-                    IconButton(onClick = { /* TODO: Implement retry */ }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Retry Analysis")
-                    }
+//                    IconButton(onClick = { /* TODO: Implement share */ }) {
+//                        Icon(Icons.Default.Share, contentDescription = "Share")
+//                    }
+//                    IconButton(onClick = { /* TODO: Implement retry */ }) {
+//                        Icon(Icons.Default.Refresh, contentDescription = "Retry Analysis")
+//                    }
                 }
             )
         }
@@ -495,20 +495,28 @@ private fun getEmotionEmoji(emotion: String): String {
 }
 
 private fun parseDetailsBody(detailsBody: String): List<Pair<String, String>> {
-    // Simple parsing - split by double newlines and try to extract sections
+    // Parse sections that now have proper headers
     val sections = mutableListOf<Pair<String, String>>()
 
     val parts = detailsBody.split("\n\n")
     parts.forEach { part ->
-        val lines = part.trim().split("\n")
+        val lines = part.trim().split("\n", limit = 2)
         if (lines.isNotEmpty()) {
-            val title = when {
-                part.contains("body", ignoreCase = true) || part.contains("posture", ignoreCase = true) -> "Body Language"
-                part.contains("vocal", ignoreCase = true) || part.contains("sound", ignoreCase = true) -> "Vocalization"
-                part.contains("context", ignoreCase = true) || part.contains("environment", ignoreCase = true) -> "Context"
-                else -> "Observation"
+            // If we have at least 2 lines, first line is title, rest is content
+            if (lines.size >= 2) {
+                val title = lines[0].trim()
+                val content = lines[1].trim()
+                sections.add(title to content)
+            } else {
+                // Fallback: try to detect section type
+                val title = when {
+                    part.contains("body", ignoreCase = true) || part.contains("posture", ignoreCase = true) -> "Body Language"
+                    part.contains("vocal", ignoreCase = true) || part.contains("sound", ignoreCase = true) -> "Vocalization"
+                    part.contains("context", ignoreCase = true) || part.contains("environment", ignoreCase = true) -> "Context"
+                    else -> "Observation"
+                }
+                sections.add(title to part.trim())
             }
-            sections.add(title to part.trim())
         }
     }
 

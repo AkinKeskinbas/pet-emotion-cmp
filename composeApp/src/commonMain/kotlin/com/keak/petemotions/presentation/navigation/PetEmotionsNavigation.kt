@@ -16,6 +16,7 @@ import com.keak.petemotions.presentation.screens.AddEditPetScreen
 import com.keak.petemotions.presentation.screens.AdvancedAnalysisScreen
 import com.keak.petemotions.presentation.screens.PaywallScreen
 import com.keak.petemotions.presentation.screens.PermissionsScreen
+import com.keak.petemotions.presentation.screens.CompareScreen
 
 @Composable
 fun PetEmotionsNavigation(
@@ -68,13 +69,17 @@ fun PetEmotionsNavigation(
             PermissionsScreen(
                 navController = navController,
                 onContinue = {
-                    navController.navigate(HomeRoute) {
+                    navController.navigate(PaywallRoute) {
                         popUpTo(navController.graph.startDestinationId) {
                             inclusive = true
                         }
                     }
                 }
             )
+        }
+
+        composable<CompareRoute> {
+            CompareScreen(navController)
         }
     }
 }

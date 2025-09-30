@@ -21,13 +21,13 @@ class AndroidMediaStorage(
             }
             val file = File(directory, "${uuid4()}.${extension}")
             file.writeBytes(bytes)
-            file.absolutePath
+            file.name
         }.getOrElse { throw it }
     }
 
     override suspend fun load(path: String): ByteArray? = withContext(Dispatchers.IO) {
         runCatching {
-            val file = File(path)
+            val file = File(path).takeIf { it.isAbsolute } ?: File(mediaDir, path)
             if (file.exists()) file.readBytes() else null
         }.getOrNull()
     }

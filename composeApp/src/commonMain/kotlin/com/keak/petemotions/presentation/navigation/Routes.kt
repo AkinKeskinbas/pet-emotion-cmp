@@ -31,3 +31,6 @@ object PaywallRoute
 
 @Serializable
 object PermissionsRoute
+
+@Serializable
+object CompareRoute

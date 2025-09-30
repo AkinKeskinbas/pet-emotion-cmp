@@ -30,11 +30,16 @@ class IOSMediaStorage : MediaStorage {
         val targetPath = (mediaDirectory as NSString).stringByAppendingPathComponent(fileName)
         val data = bytes.toNSData()
         data.writeToFile(targetPath, true)
-        targetPath
+        fileName
     }
 
     override suspend fun load(path: String): ByteArray? = withContext(Dispatchers.Default) {
-        NSData.dataWithContentsOfFile(path)?.toByteArray()
+        val resolvedPath = if (path.startsWith("/")) {
+            path
+        } else {
+            (mediaDirectory as NSString).stringByAppendingPathComponent(path)
+        }
+        NSData.dataWithContentsOfFile(resolvedPath)?.toByteArray()
     }
 }
 

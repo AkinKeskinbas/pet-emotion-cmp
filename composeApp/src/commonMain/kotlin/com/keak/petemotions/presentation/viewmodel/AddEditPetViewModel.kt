@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.keak.petemotions.data.model.Pet
 import com.keak.petemotions.data.repository.PetRepository
+import com.keak.petemotions.data.storage.MediaStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,12 +21,14 @@ data class AddEditPetUiState(
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
     val error: String? = null,
-    val nameError: String? = null
+    val nameError: String? = null,
+    val isSelectingPhoto: Boolean = false
 )
 
 class AddEditPetViewModel(
     private val petId: String?,
-    private val petRepository: PetRepository
+    private val petRepository: PetRepository,
+    private val mediaStorage: MediaStorage
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddEditPetUiState())
@@ -92,6 +95,25 @@ class AddEditPetViewModel(
 
     fun updateAvatarPath(avatarPath: String?) {
         _uiState.value = _uiState.value.copy(avatarPath = avatarPath)
+    }
+
+    fun onAvatarSelected(photoBytes: ByteArray) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSelectingPhoto = true, error = null)
+
+            try {
+                val avatarPath = mediaStorage.save(photoBytes, "jpg")
+                _uiState.value = _uiState.value.copy(
+                    avatarPath = avatarPath,
+                    isSelectingPhoto = false
+                )
+            } catch (throwable: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to save photo: ${throwable.message}",
+                    isSelectingPhoto = false
+                )
+            }
+        }
     }
 
     fun savePet() {

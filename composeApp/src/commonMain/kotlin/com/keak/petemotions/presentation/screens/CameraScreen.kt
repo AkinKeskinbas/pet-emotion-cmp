@@ -1,5 +1,6 @@
 package com.keak.petemotions.presentation.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -7,19 +8,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.navigation.NavController
 import com.keak.petemotions.platform.CameraPermissionStatus
 import com.keak.petemotions.platform.PermissionType
 import com.keak.petemotions.platform.createPlaceholderImage
 import com.keak.petemotions.platform.loadImageFromBytes
 import com.keak.petemotions.presentation.navigation.ResultDetailRoute
+import com.keak.petemotions.presentation.navigation.PaywallRoute
 import com.keak.petemotions.presentation.viewmodel.CameraViewModel
 import com.keak.petemotions.presentation.viewmodel.CaptureMode
+import com.keak.petemotions.data.model.AnalysisCost
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -41,15 +49,27 @@ fun CameraScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     // Show error messages in snackbar
-    LaunchedEffect(uiState.error) {
+    LaunchedEffect(uiState.error?.message) {
         uiState.error?.let { error ->
-            snackbarHostState.showSnackbar(
-                message = error.message,
-                duration = SnackbarDuration.Short
-            )
-            viewModel.clearError()
+            println("CameraScreen: Showing snackbar with message: ${error.message}")
+            // Clear error first to prevent re-triggering
+            viewModel.dismissError()
+
+            // Use coroutineScope to avoid composition scope issues
+            coroutineScope.launch {
+                try {
+                    val result = snackbarHostState.showSnackbar(
+                        message = error.message,
+                        duration = SnackbarDuration.Long
+                    )
+                    println("CameraScreen: Snackbar result: $result")
+                } catch (e: Exception) {
+                    println("CameraScreen: Error showing snackbar: ${e.message}")
+                }
+            }
         }
     }
 
@@ -86,6 +106,15 @@ fun CameraScreen(
         }
     }
 
+    // Handle paywall navigation for insufficient coins
+    LaunchedEffect(uiState.paywallNavigationEvent) {
+        if (uiState.paywallNavigationEvent) {
+            println("CameraScreen: Auto-opening paywall due to insufficient coins")
+            navController.navigate(PaywallRoute)
+            viewModel.clearPaywallNavigationEvent()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -103,7 +132,19 @@ fun CameraScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                snackbar = { data ->
+                    Snackbar(
+                        snackbarData = data,
+                        containerColor = Color(0xFF424242), // Dark gray
+                        contentColor = Color(0xFFFFFFFF),   // White text
+                        actionColor = Color(0xFF90CAF9)     // Light blue for actions
+                    )
+                }
+            )
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -302,6 +343,61 @@ fun CameraScreen(
                 }
             }
 
+            // Animated coin error display
+            AnimatedVisibility(
+                visible = uiState.coinError != null,
+                enter = slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = tween(300, easing = EaseOutCubic)
+                ) + fadeIn(animationSpec = tween(300)),
+                exit = slideOutVertically(
+                    targetOffsetY = { it },
+                    animationSpec = tween(300, easing = EaseInCubic)
+                ) + fadeOut(animationSpec = tween(300))
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MonetizationOn,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = uiState.coinError ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { viewModel.dismissCoinError() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.weight(1f))
 
             // Controls
@@ -317,7 +413,8 @@ fun CameraScreen(
                         onClick = {
                             println("CameraScreen: Retake button clicked")
                             viewModel.retakePhoto()
-                        }
+                        },
+                        enabled = !uiState.isAnalyzing
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -329,11 +426,22 @@ fun CameraScreen(
                         onClick = {
                             println("CameraScreen: Analyze button clicked")
                             viewModel.analyzeCurrentPhoto()
-                        }
+                        },
+                        enabled = !uiState.isAnalyzing
                     ) {
-                        Icon(Icons.Default.Analytics, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Analyze")
+                        if (uiState.isAnalyzing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Analyzing...")
+                        } else {
+                            Icon(Icons.Default.Analytics, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Analyze")
+                        }
                     }
                 }
             } else {
@@ -358,6 +466,9 @@ fun CameraScreen(
                     // Capture button
                     FloatingActionButton(
                         onClick = {
+                            // Don't handle clicks while analyzing
+                            if (uiState.isAnalyzing) return@FloatingActionButton
+
                             println("CameraScreen: Capture button clicked, mode=${uiState.captureMode}")
                             when (uiState.captureMode) {
                                 CaptureMode.PHOTO -> {
@@ -387,6 +498,8 @@ fun CameraScreen(
                         modifier = Modifier.size(72.dp),
                         containerColor = if (uiState.isRecording)
                             MaterialTheme.colorScheme.error
+                        else if (uiState.isAnalyzing)
+                            MaterialTheme.colorScheme.outline
                         else
                             MaterialTheme.colorScheme.primary
                     ) {
@@ -411,7 +524,8 @@ fun CameraScreen(
                             println("CameraScreen: Gallery button clicked")
                             galleryLauncher()
                         },
-                        modifier = Modifier.size(56.dp)
+                        modifier = Modifier.size(56.dp),
+                        enabled = !uiState.isAnalyzing
                     ) {
                         Icon(
                             Icons.Default.PhotoLibrary,
@@ -488,24 +602,85 @@ fun CaptureMode_Toggle(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 32.dp),
+            .padding(horizontal = 8.dp),
         horizontalArrangement = Arrangement.Center
     ) {
-        SegmentedButton(
+        SegmentedButtonWithCost(
             selected = captureMode == CaptureMode.PHOTO,
             onClick = { onModeChanged(CaptureMode.PHOTO) },
             icon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
-            text = "Photo"
+            text = "Photo",
+            cost = AnalysisCost.PHOTO_ANALYSIS
         )
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        SegmentedButton(
+        SegmentedButtonWithCost(
             selected = captureMode == CaptureMode.VIDEO,
             onClick = { onModeChanged(CaptureMode.VIDEO) },
             icon = { Icon(Icons.Default.Videocam, contentDescription = null) },
-            text = "Video"
+            text = "Video",
+            cost = AnalysisCost.VIDEO_ANALYSIS
         )
+    }
+}
+
+@Composable
+fun SegmentedButtonWithCost(
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: @Composable () -> Unit,
+    text: String,
+    cost: Int
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.height(48.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+        ),
+        border = BorderStroke(
+            width = if (selected) 2.dp else 1.dp,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+        )
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            icon()
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium
+            )
+            // Cost indicator
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                ),
+                modifier = Modifier.padding(start = 4.dp),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "🪙",
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = cost.toString(),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 package com.keak.petemotions.presentation.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -11,6 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -18,6 +21,8 @@ import com.keak.petemotions.data.model.AnalysisRecord
 import com.keak.petemotions.data.model.Pet
 import com.keak.petemotions.data.repository.AnalysisRepository
 import com.keak.petemotions.data.repository.PetRepository
+import com.keak.petemotions.data.storage.MediaStorage
+import com.keak.petemotions.platform.loadImageFromBytes
 import com.keak.petemotions.presentation.navigation.ResultDetailRoute
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -49,13 +54,68 @@ fun HistoryScreen(
         }
     }
 
-    // Filter records based on selected filters
+    // Filter records based on selected filters and sort by newest first
     val filteredRecords = remember(analysisRecords, selectedPetFilter, selectedEmotionFilter) {
-        analysisRecords.filter { record ->
-            val petMatch = selectedPetFilter?.let { it.id == record.petId } ?: true
-            val emotionMatch = selectedEmotionFilter?.let { it == record.emotion } ?: true
-            petMatch && emotionMatch
+        analysisRecords
+            .filter { record ->
+                val petMatch = selectedPetFilter?.let { it.id == record.petId } ?: true
+                val emotionMatch = selectedEmotionFilter?.let { it == record.emotion } ?: true
+                petMatch && emotionMatch
+            }
+            .sortedByDescending { it.createdAt }
+    }
+
+    val mediaStorage: MediaStorage = koinInject()
+    var petAvatarBitmaps by remember { mutableStateOf<Map<String, ImageBitmap?>>(emptyMap()) }
+
+    LaunchedEffect(pets) {
+        if (pets.isNotEmpty()) {
+            launch {
+                val result = mutableMapOf<String, ImageBitmap?>()
+                pets.forEach { pet ->
+                    val bitmap = pet.avatarPath?.takeIf { it.isNotBlank() }?.let { path ->
+                        try {
+                            println("HistoryScreen: Loading avatar for pet ${pet.name} from path: $path")
+                            val bytes = mediaStorage.load(path)
+                            if (bytes != null) {
+                                println("HistoryScreen: Loaded ${bytes.size} bytes for pet ${pet.name}")
+                                val imageBitmap = loadImageFromBytes(bytes)
+                                if (imageBitmap != null) {
+                                    println("HistoryScreen: Successfully created ImageBitmap for pet ${pet.name}")
+                                } else {
+                                    println("HistoryScreen: Failed to create ImageBitmap for pet ${pet.name}")
+                                }
+                                imageBitmap
+                            } else {
+                                println("HistoryScreen: No bytes loaded for pet ${pet.name} from path: $path")
+                                null
+                            }
+                        } catch (e: Exception) {
+                            println("HistoryScreen: Error loading avatar for pet ${pet.name}: ${e.message}")
+                            null
+                        }
+                    }
+                    result[pet.id] = bitmap
+                }
+                petAvatarBitmaps = result
+            }
         }
+    }
+
+    val analysisImageBitmaps by produceState<Map<String, ImageBitmap?>>(initialValue = emptyMap(), key1 = filteredRecords) {
+        val result = mutableMapOf<String, ImageBitmap?>()
+        filteredRecords.forEach { record ->
+            if (record.mediaType == "image") {
+                val imageBytes = try {
+                    analysisRepository.loadMediaFile(record.mediaPath)
+                } catch (_: Exception) {
+                    null
+                }
+                val bitmap = imageBytes?.let { bytes -> loadImageFromBytes(bytes) }
+                result[record.id] = bitmap
+            }
+        }
+        value = result
     }
 
     Scaffold(
@@ -133,9 +193,19 @@ fun HistoryScreen(
                 }
             } else {
                 items(filteredRecords) { record ->
+                    val petForRecord = pets.find { it.id == record.petId }
+                    val petAvatar = petForRecord?.let { petAvatarBitmaps[it.id] }
+                    val analysisImage = analysisImageBitmaps[record.id]
+
+                    // Priority: Pet avatar first, then analysis image
+                    val previewBitmap = petAvatar ?: analysisImage
+
+                    println("HistoryScreen: Record ${record.id} - Pet: ${petForRecord?.name}, HasPetAvatar: ${petAvatar != null}, HasAnalysisImage: ${analysisImage != null}")
+
                     HistoryItem(
                         analysisRecord = record,
-                        petName = pets.find { it.id == record.petId }?.name,
+                        petName = petForRecord?.name,
+                        previewBitmap = previewBitmap,
                         onClick = {
                             navController.navigate(ResultDetailRoute(record.id))
                         }
@@ -248,8 +318,10 @@ fun FiltersRow(
 fun HistoryItem(
     analysisRecord: AnalysisRecord,
     petName: String?,
+    previewBitmap: ImageBitmap?,
     onClick: () -> Unit
 ) {
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
@@ -259,7 +331,7 @@ fun HistoryItem(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Media type icon
+            // Media preview or icon
             Card(
                 modifier = Modifier.size(48.dp),
                 shape = RoundedCornerShape(8.dp),
@@ -271,15 +343,24 @@ fun HistoryItem(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = if (analysisRecord.mediaType == "video") {
-                            Icons.Default.VideoLibrary
-                        } else {
-                            Icons.Default.Image
-                        },
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    if (previewBitmap != null) {
+                        Image(
+                            bitmap = previewBitmap,
+                            contentDescription = petName?.let { "$it photo" } ?: "Pet photo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            imageVector = if (analysisRecord.mediaType == "video") {
+                                Icons.Default.VideoLibrary
+                            } else {
+                                Icons.Default.Image
+                            },
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
             }
 

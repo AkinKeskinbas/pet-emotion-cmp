@@ -62,7 +62,13 @@ Pods/
 # Development files
 development.docx
 AGENTS.md
+*.md
+!README.md
+!CLAUDE.md
 
 # API Keys (never commit these)
 **/apikey.txt
 **/secrets.properties
+
+# Temporary files
+tmp/

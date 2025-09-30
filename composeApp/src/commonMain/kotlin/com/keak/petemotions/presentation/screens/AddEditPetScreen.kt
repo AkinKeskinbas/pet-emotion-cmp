@@ -1,5 +1,6 @@
 package com.keak.petemotions.presentation.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,15 +11,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.keak.petemotions.data.model.Pet
+import com.keak.petemotions.data.storage.MediaStorage
+import com.keak.petemotions.platform.loadImageFromBytes
 import com.keak.petemotions.presentation.viewmodel.AddEditPetViewModel
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -30,6 +34,24 @@ fun AddEditPetScreen(
     viewModel: AddEditPetViewModel = koinViewModel { parametersOf(petId) }
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val galleryLauncher = rememberGalleryLauncher { imageBytes ->
+        viewModel.onAvatarSelected(imageBytes)
+    }
+
+    LaunchedEffect(uiState.error) {
+        val errorMessage = uiState.error ?: return@LaunchedEffect
+        try {
+            snackbarHostState.showSnackbar(
+                message = errorMessage,
+                withDismissAction = true,
+                duration = SnackbarDuration.Long
+            )
+        } catch (_: Exception) {
+            // Ignore snackbar exceptions to avoid crashing the screen
+        }
+        viewModel.dismissError()
+    }
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
@@ -39,6 +61,7 @@ fun AddEditPetScreen(
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -84,7 +107,10 @@ fun AddEditPetScreen(
             PetAvatarSection(
                 avatarPath = uiState.avatarPath,
                 petName = uiState.name,
-                onSelectAvatar = { /* TODO: Implement avatar selection */ }
+                isSelecting = uiState.isSelectingPhoto,
+                onSelectAvatar = {
+                    galleryLauncher()
+                }
             )
 
             // Name field
@@ -207,22 +233,33 @@ fun AddEditPetScreen(
             }
         }
     }
-
-    // Handle error
-    uiState.error?.let { error ->
-        LaunchedEffect(error) {
-            // TODO: Show proper error snackbar
-            viewModel.dismissError()
-        }
-    }
 }
 
 @Composable
 fun PetAvatarSection(
     avatarPath: String?,
     petName: String,
+    isSelecting: Boolean = false,
     onSelectAvatar: () -> Unit
 ) {
+    val mediaStorage: MediaStorage = koinInject()
+    val avatarBitmap by produceState<ImageBitmap?>(initialValue = null, avatarPath, isSelecting) {
+        if (isSelecting) {
+            value = null
+            return@produceState
+        }
+
+        value = if (avatarPath.isNullOrBlank()) {
+            null
+        } else {
+            runCatching { mediaStorage.load(avatarPath) }
+                .getOrNull()
+                ?.let { bytes ->
+                    loadImageFromBytes(bytes)
+                }
+        }
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -230,6 +267,7 @@ fun PetAvatarSection(
             modifier = Modifier.size(120.dp),
             shape = RoundedCornerShape(60.dp),
             onClick = onSelectAvatar,
+            enabled = !isSelecting,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             )
@@ -238,8 +276,23 @@ fun PetAvatarSection(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                if (avatarPath != null) {
-                    // TODO: Load actual avatar image
+                if (isSelecting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(32.dp),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                } else if (avatarBitmap != null) {
+                    Image(
+                        bitmap = avatarBitmap!!,
+                        contentDescription = if (petName.isNotBlank()) {
+                            "${petName}'s photo"
+                        } else {
+                            "Pet photo"
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else if (avatarPath != null) {
                     Icon(
                         Icons.Default.Pets,
                         contentDescription = null,
@@ -276,7 +329,7 @@ fun PetAvatarSection(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        TextButton(onClick = onSelectAvatar) {
+        TextButton(onClick = onSelectAvatar, enabled = !isSelecting) {
             Icon(
                 Icons.Default.CameraAlt,
                 contentDescription = null,

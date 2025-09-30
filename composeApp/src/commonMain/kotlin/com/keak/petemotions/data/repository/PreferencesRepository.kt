@@ -1,5 +1,7 @@
 package com.keak.petemotions.data.repository
 
+import com.keak.petemotions.data.model.CoinBalance
+import com.keak.petemotions.data.model.CoinTransaction
 import com.keak.petemotions.data.model.UserPrefs
 import kotlinx.coroutines.flow.Flow
 
@@ -12,4 +14,10 @@ interface PreferencesRepository {
     suspend fun setHasCompletedOnboarding(completed: Boolean)
     fun hasCompletedOnboarding(): Flow<Boolean>
     suspend fun setOpenAiApiKey(apiKey: String?)
+
+    // Coin system methods
+    suspend fun saveCoinBalance(balance: CoinBalance)
+    fun getCoinBalance(): Flow<CoinBalance>
+    suspend fun saveCoinHistory(history: List<CoinTransaction>)
+    fun getCoinHistory(): Flow<List<CoinTransaction>>
 }

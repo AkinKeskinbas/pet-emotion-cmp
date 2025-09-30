@@ -1,5 +1,6 @@
 package com.keak.petemotions.presentation.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,12 +11,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.keak.petemotions.data.model.Pet
+import com.keak.petemotions.data.storage.MediaStorage
+import com.keak.petemotions.platform.loadImageFromBytes
 import com.keak.petemotions.presentation.navigation.AddEditPetRoute
 import com.keak.petemotions.presentation.viewmodel.MyPetsViewModel
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,6 +125,20 @@ fun PetCard(
     onDelete: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val mediaStorage: MediaStorage = koinInject()
+    val avatarBitmap by produceState<ImageBitmap?>(initialValue = null, key1 = pet.avatarPath) {
+        value = if (pet.avatarPath.isNullOrBlank()) {
+            null
+        } else {
+            try {
+                mediaStorage.load(pet.avatarPath)?.let { bytes ->
+                    loadImageFromBytes(bytes)
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -143,8 +163,14 @@ fun PetCard(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (pet.avatarPath != null) {
-                        // TODO: Load actual avatar image
+                    if (avatarBitmap != null) {
+                        Image(
+                            bitmap = avatarBitmap!!,
+                            contentDescription = "${pet.name}'s photo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else if (pet.avatarPath != null) {
                         Icon(
                             Icons.Default.Pets,
                             contentDescription = null,

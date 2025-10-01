@@ -29,6 +29,10 @@ import com.keak.petemotions.presentation.viewmodel.CameraViewModel
 import com.keak.petemotions.presentation.viewmodel.CaptureMode
 import com.keak.petemotions.data.model.AnalysisCost
 import org.koin.compose.viewmodel.koinViewModel
+import org.jetbrains.compose.resources.stringResource
+import petemotions.composeapp.generated.resources.Res
+import petemotions.composeapp.generated.resources.*
+
 
 @Composable
 expect fun rememberGalleryLauncher(
@@ -129,14 +133,14 @@ fun CameraScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Camera",
+                        text = stringResource(Res.string.camera_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 }
             )
@@ -171,8 +175,8 @@ fun CameraScreen(
             ) {
                 Text(
                     text = when (uiState.captureMode) {
-                        CaptureMode.PHOTO -> "Ensure good lighting for best results"
-                        CaptureMode.VIDEO -> "Video will automatically stop after 5 seconds"
+                        CaptureMode.PHOTO -> stringResource(Res.string.camera_hint_photo)
+                        CaptureMode.VIDEO -> stringResource(Res.string.camera_hint_video)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(16.dp)
@@ -230,7 +234,7 @@ fun CameraScreen(
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = "Camera permission required",
+                                    text = stringResource(Res.string.camera_permission_required),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -238,7 +242,7 @@ fun CameraScreen(
                                 Button(
                                     onClick = cameraPermissionLauncher
                                 ) {
-                                    Text("Grant Camera Permission")
+                                    Text(stringResource(Res.string.camera_grant_permission))
                                 }
                             }
                         }
@@ -256,7 +260,7 @@ fun CameraScreen(
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = "Microphone permission required for video",
+                                    text = stringResource(Res.string.camera_microphone_required),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -264,7 +268,7 @@ fun CameraScreen(
                                 Button(
                                     onClick = microphoneLauncher
                                 ) {
-                                    Text("Grant Microphone Permission")
+                                    Text(stringResource(Res.string.camera_grant_microphone))
                                 }
                             }
                         }
@@ -275,7 +279,7 @@ fun CameraScreen(
                                 CircularProgressIndicator()
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = "Analyzing your pet's emotions...",
+                                    text = stringResource(Res.string.camera_analyzing),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -287,7 +291,7 @@ fun CameraScreen(
                             }
                             Image(
                                 bitmap = imageBitmap,
-                                contentDescription = "Captured photo",
+                                contentDescription = stringResource(Res.string.camera_captured_photo),
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
@@ -320,7 +324,7 @@ fun CameraScreen(
                                     }
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "Recording...",
+                                        text = stringResource(Res.string.camera_recording),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.error,
                                         fontWeight = FontWeight.Medium
@@ -334,7 +338,7 @@ fun CameraScreen(
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "Tap capture to take photo",
+                                        text = stringResource(Res.string.camera_tap_capture),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -420,7 +424,7 @@ fun CameraScreen(
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Retake")
+                        Text(stringResource(Res.string.action_retake))
                     }
 
                     // Analyze button
@@ -438,11 +442,11 @@ fun CameraScreen(
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Analyzing...")
+                            Text(stringResource(Res.string.camera_analyzing_button))
                         } else {
                             Icon(Icons.Default.Analytics, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Analyze")
+                            Text(stringResource(Res.string.action_analyze))
                         }
                     }
                 }
@@ -460,7 +464,7 @@ fun CameraScreen(
                     ) {
                         Icon(
                             Icons.Default.FlipCameraAndroid,
-                            contentDescription = "Flip Camera",
+                            contentDescription = stringResource(Res.string.camera_flip),
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -512,9 +516,9 @@ fun CameraScreen(
                                 else -> Icons.Default.Videocam
                             },
                             contentDescription = when {
-                                uiState.captureMode == CaptureMode.PHOTO -> "Take Photo"
-                                uiState.isRecording -> "Stop Recording"
-                                else -> "Start Recording"
+                                uiState.captureMode == CaptureMode.PHOTO -> stringResource(Res.string.camera_take_photo)
+                                uiState.isRecording -> stringResource(Res.string.camera_stop_recording)
+                                else -> stringResource(Res.string.camera_start_recording)
                             },
                             modifier = Modifier.size(32.dp)
                         )
@@ -543,7 +547,7 @@ fun CameraScreen(
                                 Icons.Default.PhotoLibrary
                             else
                                 Icons.Default.VideoLibrary,
-                            contentDescription = if (uiState.captureMode == CaptureMode.PHOTO) "Photo Gallery" else "Video Gallery",
+                            contentDescription = if (uiState.captureMode == CaptureMode.PHOTO) stringResource(Res.string.camera_photo_gallery) else stringResource(Res.string.camera_video_gallery),
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -577,7 +581,7 @@ fun PetSelector(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Select Pet (Optional)",
+                text = stringResource(Res.string.camera_select_pet),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Medium
             )
@@ -591,7 +595,7 @@ fun PetSelector(
                 // "None" option
                 FilterChip(
                     onClick = { onPetSelected(null) },
-                    label = { Text("None") },
+                    label = { Text(stringResource(Res.string.camera_none)) },
                     selected = selectedPet == null
                 )
 
@@ -623,7 +627,7 @@ fun CaptureMode_Toggle(
             selected = captureMode == CaptureMode.PHOTO,
             onClick = { onModeChanged(CaptureMode.PHOTO) },
             icon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
-            text = "Photo",
+            text = stringResource(Res.string.camera_mode_photo),
             cost = AnalysisCost.PHOTO_ANALYSIS
         )
 
@@ -633,7 +637,7 @@ fun CaptureMode_Toggle(
             selected = captureMode == CaptureMode.VIDEO,
             onClick = { onModeChanged(CaptureMode.VIDEO) },
             icon = { Icon(Icons.Default.Videocam, contentDescription = null) },
-            text = "Video",
+            text = stringResource(Res.string.camera_mode_video),
             cost = AnalysisCost.VIDEO_ANALYSIS
         )
     }

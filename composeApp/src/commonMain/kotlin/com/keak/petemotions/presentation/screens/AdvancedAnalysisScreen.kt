@@ -22,6 +22,9 @@ import com.keak.petemotions.data.repository.AnalysisRepository
 import com.keak.petemotions.data.repository.PetRepository
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.jetbrains.compose.resources.stringResource
+import petemotions.composeapp.generated.resources.Res
+import petemotions.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -201,7 +204,7 @@ fun AnalysisFilters(
                     item {
                         FilterChip(
                             onClick = { onPetSelected(null) },
-                            label = { Text("All Pets") },
+                            label = { Text(stringResource(Res.string.advanced_all_pets)) },
                             selected = selectedPet == null
                         )
                     }

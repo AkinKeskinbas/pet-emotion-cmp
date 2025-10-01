@@ -30,6 +30,9 @@ import com.keak.petemotions.platform.loadImageFromBytes
 import com.keak.petemotions.presentation.viewmodel.CompareViewModel
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.jetbrains.compose.resources.stringResource
+import petemotions.composeapp.generated.resources.Res
+import petemotions.composeapp.generated.resources.*
 
 // Design tokens from compare.md
 object CompareDesignTokens {
@@ -369,7 +372,7 @@ fun PetSelectionCard(
         onDismissRequest = { expanded = false }
     ) {
         DropdownMenuItem(
-            text = { Text("None") },
+            text = { Text(stringResource(Res.string.compare_none)) },
             onClick = {
                 onPetSelected(null)
                 expanded = false

@@ -22,9 +22,14 @@ import androidx.navigation.NavController
 import com.keak.petemotions.data.storage.MediaStorage
 import com.keak.petemotions.platform.loadImageFromBytes
 import com.keak.petemotions.presentation.viewmodel.AddEditPetViewModel
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import petemotions.composeapp.generated.resources.Res
+import petemotions.composeapp.generated.resources.pet_name_label
+import petemotions.composeapp.generated.resources.pet_name_placeholder
+import petemotions.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,14 +71,14 @@ fun AddEditPetScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (petId == null) "Add Pet" else "Edit Pet",
+                        text = if (petId == null) stringResource(Res.string.add_pet_title) else stringResource(Res.string.edit_pet_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
                 actions = {
@@ -87,7 +92,7 @@ fun AddEditPetScreen(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text("Save")
+                            Text(stringResource(Res.string.action_save))
                         }
                     }
                 }
@@ -117,8 +122,8 @@ fun AddEditPetScreen(
             OutlinedTextField(
                 value = uiState.name,
                 onValueChange = viewModel::updateName,
-                label = { Text("Pet Name") },
-                placeholder = { Text("Enter your pet's name") },
+                label = { Text(stringResource(Res.string.pet_name_label)) },
+                placeholder = { Text(stringResource(Res.string.pet_name_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = {
                     Icon(Icons.Default.Pets, contentDescription = null)
@@ -136,8 +141,8 @@ fun AddEditPetScreen(
             OutlinedTextField(
                 value = uiState.breed ?: "",
                 onValueChange = viewModel::updateBreed,
-                label = { Text("Breed (Optional)") },
-                placeholder = { Text("e.g. Golden Retriever, Persian Cat") },
+                label = { Text(stringResource(Res.string.pet_breed_label)) },
+                placeholder = { Text(stringResource(Res.string.pet_breed_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = {
                     Icon(Icons.Default.Category, contentDescription = null)
@@ -156,8 +161,8 @@ fun AddEditPetScreen(
                     value.toIntOrNull()?.let { viewModel.updateAge(it) }
                         ?: if (value.isEmpty()) { viewModel.updateAge(null) } else { /* ignore invalid input */ }
                 },
-                label = { Text("Age (Optional)") },
-                placeholder = { Text("Age in years") },
+                label = { Text(stringResource(Res.string.pet_age_label)) },
+                placeholder = { Text(stringResource(Res.string.pet_age_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = {
                     Icon(Icons.Default.CalendarToday, contentDescription = null)
@@ -173,8 +178,8 @@ fun AddEditPetScreen(
             OutlinedTextField(
                 value = uiState.notes ?: "",
                 onValueChange = viewModel::updateNotes,
-                label = { Text("Notes (Optional)") },
-                placeholder = { Text("Any special notes about your pet...") },
+                label = { Text(stringResource(Res.string.pet_notes_label)) },
+                placeholder = { Text(stringResource(Res.string.pet_notes_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5,
@@ -202,16 +207,16 @@ fun AddEditPetScreen(
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Delete Pet")
+                    Text(stringResource(Res.string.my_pets_delete_pet))
                 }
 
                 // Delete confirmation dialog
                 if (showDeleteDialog) {
                     AlertDialog(
                         onDismissRequest = { showDeleteDialog = false },
-                        title = { Text("Delete Pet") },
+                        title = { Text(stringResource(Res.string.pet_delete_dialog_title)) },
                         text = {
-                            Text("Are you sure you want to delete ${uiState.name}? This will also delete all associated analysis records. This action cannot be undone.")
+                            Text(stringResource(Res.string.pet_delete_with_records_message).replace("%s", uiState.name))
                         },
                         confirmButton = {
                             TextButton(
@@ -220,12 +225,12 @@ fun AddEditPetScreen(
                                     showDeleteDialog = false
                                 }
                             ) {
-                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                                Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error)
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = { showDeleteDialog = false }) {
-                                Text("Cancel")
+                                Text(stringResource(Res.string.action_cancel))
                             }
                         }
                     )
@@ -284,11 +289,7 @@ fun PetAvatarSection(
                 } else if (avatarBitmap != null) {
                     Image(
                         bitmap = avatarBitmap!!,
-                        contentDescription = if (petName.isNotBlank()) {
-                            "${petName}'s photo"
-                        } else {
-                            "Pet photo"
-                        },
+                        contentDescription = stringResource(Res.string.pet_photo_description),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
@@ -318,7 +319,7 @@ fun PetAvatarSection(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Add Photo",
+                            text = stringResource(Res.string.pet_add_photo),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -336,7 +337,7 @@ fun PetAvatarSection(
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Change Photo")
+            Text(stringResource(Res.string.pet_change_photo))
         }
     }
 }

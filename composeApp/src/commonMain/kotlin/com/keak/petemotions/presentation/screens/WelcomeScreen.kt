@@ -22,7 +22,11 @@ import androidx.navigation.NavController
 import com.keak.petemotions.data.repository.PreferencesRepository
 import com.keak.petemotions.presentation.navigation.PermissionsRoute
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
+import petemotions.composeapp.generated.resources.Res
+import petemotions.composeapp.generated.resources.*
+
 
 data class OnboardingPage(
     val icon: ImageVector,
@@ -41,23 +45,23 @@ fun WelcomeScreen(
     val onboardingPages = listOf(
         OnboardingPage(
             icon = Icons.Default.Pets,
-            title = "Welcome to PetEmotions",
-            description = "Discover what your pet is really feeling through the power of AI-driven emotion analysis."
+            title = stringResource(Res.string.onboarding_welcome_title),
+            description = stringResource(Res.string.onboarding_welcome_description)
         ),
         OnboardingPage(
             icon = Icons.Default.CameraAlt,
-            title = "Capture Their Moments",
-            description = "Simply take a photo or record a video of your pet to start understanding their emotional state."
+            title = stringResource(Res.string.onboarding_capture_title),
+            description = stringResource(Res.string.onboarding_capture_description)
         ),
         OnboardingPage(
             icon = Icons.Default.Analytics,
-            title = "Get Detailed Insights",
-            description = "Receive comprehensive analysis of your pet's emotions, behavior patterns, and well-being over time."
+            title = stringResource(Res.string.onboarding_insights_title),
+            description = stringResource(Res.string.onboarding_insights_description)
         ),
         OnboardingPage(
             icon = Icons.Default.Favorite,
-            title = "Build Stronger Bonds",
-            description = "Use these insights to strengthen your relationship and provide the best care for your furry friends."
+            title = stringResource(Res.string.onboarding_bonds_title),
+            description = stringResource(Res.string.onboarding_bonds_description)
         )
     )
 
@@ -84,7 +88,7 @@ fun WelcomeScreen(
                         }
                     }
                 ) {
-                    Text("Skip")
+                    Text(stringResource(Res.string.action_skip))
                 }
             }
 
@@ -148,7 +152,7 @@ fun WelcomeScreen(
                             },
                             shape = RoundedCornerShape(16.dp)
                         ) {
-                            Text("Previous")
+                            Text(stringResource(Res.string.action_previous))
                         }
                     } else {
                         Spacer(modifier = Modifier.width(80.dp))
@@ -163,7 +167,7 @@ fun WelcomeScreen(
                         },
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text("Next")
+                        Text(stringResource(Res.string.action_next))
                     }
                 } else {
                     // Get Started button (final page)
@@ -181,7 +185,7 @@ fun WelcomeScreen(
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Text(
-                            text = "Get Started",
+                            text = stringResource(Res.string.action_get_started),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )

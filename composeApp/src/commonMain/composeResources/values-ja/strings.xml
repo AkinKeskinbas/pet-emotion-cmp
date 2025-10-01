@@ -1,0 +1,269 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">PawPaw</string>
+
+    <!-- Common Actions -->
+    <string name="action_back">戻る</string>
+    <string name="action_save">保存</string>
+    <string name="action_delete">削除</string>
+    <string name="action_cancel">キャンセル</string>
+    <string name="action_retry">再試行</string>
+    <string name="action_dismiss">閉じる</string>
+    <string name="action_continue">続ける</string>
+    <string name="action_skip">スキップ</string>
+    <string name="action_next">次へ</string>
+    <string name="action_previous">前へ</string>
+    <string name="action_get_started">はじめる</string>
+    <string name="action_retake">もう一度</string>
+    <string name="action_analyze">分析</string>
+    <string name="action_clear_all">すべて消す</string>
+    <string name="action_close">閉じる</string>
+    <string name="action_compare">比較</string>
+    <string name="action_clear">消去</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">ホーム</string>
+    <string name="nav_compare">比較</string>
+    <string name="nav_history">履歴</string>
+    <string name="nav_analytics">分析</string>
+    <string name="nav_camera">カメラ</string>
+    <string name="nav_my_pets">マイペット</string>
+
+    <!-- Home Screen -->
+    <string name="home_recent_analyses">最近の分析</string>
+    <string name="home_premium_features">プレミアム機能</string>
+    <string name="home_quick_actions">クイックアクション</string>
+    <string name="home_start_analyzing">ペットの気持ちを分析してみよう！</string>
+    <string name="home_take_photo">写真を撮る</string>
+    <string name="home_unlock_unlimited">無制限分析を解放</string>
+    <string name="home_your_coins">コイン</string>
+    <string name="home_coins_description">コインでペットの感情を分析</string>
+
+    <!-- Home Quick Actions -->
+    <string name="quick_action_camera_title">カメラ</string>
+    <string name="quick_action_camera_subtitle">瞬間を撮影</string>
+    <string name="quick_action_history_title">履歴</string>
+    <string name="quick_action_history_subtitle">過去の分析</string>
+    <string name="quick_action_analytics_title">分析</string>
+    <string name="quick_action_analytics_subtitle">詳細インサイト</string>
+    <string name="quick_action_my_pets_title">マイペット</string>
+    <string name="quick_action_my_pets_subtitle">ペット管理</string>
+
+    <!-- Welcome/Onboarding Screen -->
+    <string name="onboarding_welcome_title">ペットエモーションズへようこそ</string>
+    <string name="onboarding_welcome_description">AIでペットの本当の気持ちを発見しよう。</string>
+    <string name="onboarding_capture_title">瞬間をキャプチャ</string>
+    <string name="onboarding_capture_description">写真や動画を撮るだけで感情分析が始まります。</string>
+    <string name="onboarding_insights_title">詳細なインサイト</string>
+    <string name="onboarding_insights_description">感情や行動パターン、健康状態をまとめて確認できます。</string>
+    <string name="onboarding_bonds_title">もっと仲良く</string>
+    <string name="onboarding_bonds_description">分析を活かして、絆を深めましょう。</string>
+
+    <!-- My Pets Screen -->
+    <string name="my_pets_title">マイペット</string>
+    <string name="my_pets_add_pet">ペットを追加</string>
+    <string name="my_pets_edit_pet">編集</string>
+    <string name="my_pets_delete_pet">削除</string>
+    <string name="my_pets_empty_title">ペットがいません</string>
+    <string name="my_pets_empty_description">最初のペットを追加して分析を始めましょう！</string>
+    <string name="my_pets_added">%s を追加しました</string>
+
+    <!-- Add/Edit Pet Screen -->
+    <string name="add_pet_title">ペットを追加</string>
+    <string name="edit_pet_title">ペットを編集</string>
+    <string name="pet_name_label">名前</string>
+    <string name="pet_name_placeholder">ペットの名前を入力</string>
+    <string name="pet_breed_label">種類 (任意)</string>
+    <string name="pet_breed_placeholder">例: ゴールデンレトリバー、ペルシャ猫</string>
+    <string name="pet_age_label">年齢 (任意)</string>
+    <string name="pet_age_placeholder">年齢 (歳)</string>
+    <string name="pet_notes_label">メモ (任意)</string>
+    <string name="pet_notes_placeholder">特記事項があれば…</string>
+    <string name="pet_photo_description">ペットの写真</string>
+    <string name="pet_add_photo">写真を追加</string>
+    <string name="pet_change_photo">写真を変更</string>
+    <string name="pet_delete_dialog_title">削除確認</string>
+    <string name="pet_delete_dialog_message">%s を削除しますか？ この操作は元に戻せません。</string>
+    <string name="pet_delete_with_records_message">%s を削除しますか？関連する分析記録も削除されます。</string>
+
+    <!-- Camera Screen -->
+    <string name="camera_title">カメラ</string>
+    <string name="camera_hint_photo">明るい場所で撮影すると良い結果が出ます</string>
+    <string name="camera_hint_video">動画は5秒で自動停止します</string>
+    <string name="camera_permission_required">カメラ権限が必要です</string>
+    <string name="camera_grant_permission">カメラを許可</string>
+    <string name="camera_microphone_required">動画にはマイク権限が必要です</string>
+    <string name="camera_grant_microphone">マイクを許可</string>
+    <string name="camera_analyzing">ペットの感情を分析中...</string>
+    <string name="camera_captured_photo">撮影した写真</string>
+    <string name="camera_recording">録画中...</string>
+    <string name="camera_tap_capture">タップして撮影</string>
+    <string name="camera_flip">カメラ切替</string>
+    <string name="camera_take_photo">写真を撮る</string>
+    <string name="camera_stop_recording">録画停止</string>
+    <string name="camera_start_recording">録画開始</string>
+    <string name="camera_photo_gallery">写真ギャラリー</string>
+    <string name="camera_video_gallery">動画ギャラリー</string>
+    <string name="camera_select_pet">ペットを選択 (任意)</string>
+    <string name="camera_none">なし</string>
+    <string name="camera_mode_photo">写真</string>
+    <string name="camera_mode_video">動画</string>
+    <string name="camera_analyzing_button">分析中...</string>
+
+    <!-- Result Detail Screen -->
+    <string name="result_title">分析結果</string>
+    <string name="result_not_found">分析記録が見つかりません</string>
+    <string name="result_go_back">戻る</string>
+    <string name="result_failed_media">メディアを読み込めません</string>
+    <string name="result_video_analysis">動画分析</string>
+    <string name="result_play_video">動画を再生</string>
+    <string name="result_photo_preview">写真プレビュー</string>
+    <string name="result_confidence">確信度 %d%%</string>
+    <string name="result_summary">概要</string>
+    <string name="result_detailed_analysis">詳細分析</string>
+    <string name="result_tags">タグ</string>
+    <string name="result_analysis_info">分析情報</string>
+    <string name="result_analysis_id">分析ID</string>
+    <string name="result_media_type">メディア種類</string>
+    <string name="result_analyzed">分析日時</string>
+    <string name="result_pet_id">ペットID</string>
+    <string name="result_body_language">ボディランゲージ</string>
+    <string name="result_vocalization">鳴き声</string>
+    <string name="result_context">状況</string>
+    <string name="result_observation">観察</string>
+    <string name="result_analysis">分析</string>
+    <string name="result_view_details">詳細を見る</string>
+    <string name="result_placeholder_photo">サンプル写真</string>
+
+    <!-- History Screen -->
+    <string name="history_title">履歴</string>
+    <string name="history_filters">フィルター</string>
+    <string name="history_pet_filter">ペット</string>
+    <string name="history_all_pets">すべてのペット</string>
+    <string name="history_emotion_filter">感情</string>
+    <string name="history_all_emotions">すべて</string>
+    <string name="history_analysis_count_single">%d 件の分析</string>
+    <string name="history_analysis_count_plural">%d 件の分析</string>
+    <string name="history_empty_title_filtered">結果がありません</string>
+    <string name="history_empty_title">まだ分析がありません</string>
+    <string name="history_empty_description_filtered">フィルターを調整してみてください。</string>
+    <string name="history_empty_description">写真や動画を撮って分析を始めましょう。</string>
+    <string name="history_pet_photo">%s の写真</string>
+    <string name="history_pet_photo_generic">ペットの写真</string>
+
+    <!-- Emotions -->
+    <string name="emotion_happy">嬉しい</string>
+    <string name="emotion_relaxed">リラックス</string>
+    <string name="emotion_playful">遊びたい</string>
+    <string name="emotion_curious">好奇心</string>
+    <string name="emotion_alert">警戒</string>
+    <string name="emotion_stressed">ストレス</string>
+    <string name="emotion_sad">悲しい</string>
+    <string name="emotion_excited">ワクワク</string>
+    <string name="emotion_anxious">不安</string>
+
+    <!-- Paywall Bottom Sheet -->
+    <string name="paywall_close">閉じる</string>
+    <string name="paywall_premium_badge">プレミアム</string>
+    <string name="paywall_title">コインを追加</string>
+    <string name="paywall_description">コインパックで無制限に感情分析</string>
+    <string name="paywall_what_you_get">できること:</string>
+    <string name="paywall_feature_photo_title">写真分析</string>
+    <string name="paywall_feature_photo_description">1コイン / 写真</string>
+    <string name="paywall_feature_video_title">動画分析</string>
+    <string name="paywall_feature_video_description">5コイン / 動画</string>
+    <string name="paywall_feature_comparison_title">ペット比較</string>
+    <string name="paywall_feature_comparison_description">2コイン / 比較</string>
+    <string name="paywall_feature_insights_title">詳細インサイト</string>
+    <string name="paywall_feature_insights_description">3コイン / 詳細分析</string>
+    <string name="paywall_choose_package">パッケージを選択:</string>
+    <string name="paywall_failed_load">読み込み失敗</string>
+    <string name="paywall_footer">安全な支払い ・ キャンセル自由 ・ サブスクなし</string>
+    <string name="paywall_popular_badge">人気</string>
+    <string name="paywall_processing">処理中...</string>
+
+    <!-- Advanced Analysis Screen -->
+    <string name="advanced_analysis_title">詳細分析</string>
+    <string name="advanced_time_range_last_week">先週</string>
+    <string name="advanced_time_range_last_month">先月</string>
+    <string name="advanced_time_range_3_months">過去3か月</string>
+    <string name="advanced_time_range_last_year">昨年</string>
+    <string name="advanced_time_range_all_time">全期間</string>
+    <string name="advanced_filters">分析フィルター</string>
+    <string name="advanced_pet_filter">ペット</string>
+    <string name="advanced_all_pets">すべてのペット</string>
+    <string name="advanced_time_range">期間</string>
+    <string name="advanced_overview">概要</string>
+    <string name="advanced_total_analyses">合計分析数</string>
+    <string name="advanced_avg_confidence">平均確信度</string>
+    <string name="advanced_most_common">最も多い</string>
+    <string name="advanced_emotion_trends">感情の推移</string>
+    <string name="advanced_emotion_trends_placeholder">感情推移グラフ</string>
+    <string name="advanced_coming_soon">近日公開 (Vicoチャート)</string>
+    <string name="advanced_emotion_distribution">感情分布</string>
+    <string name="advanced_no_data">データがありません</string>
+    <string name="advanced_pet_comparison">ペット比較</string>
+    <string name="advanced_comparison_stats">%d 件の分析 ・ 主に %s</string>
+    <string name="advanced_recent_insights">最近のインサイト</string>
+    <string name="advanced_no_recent">最近の分析はありません</string>
+
+    <!-- Compare Screen -->
+    <string name="compare_title">比較結果</string>
+    <string name="compare_comparing">比較中...</string>
+    <string name="compare_pet_a">ペットA</string>
+    <string name="compare_pet_b">ペットB</string>
+    <string name="compare_select_pet">ペットを選択</string>
+    <string name="compare_select_label">%s を選択</string>
+    <string name="compare_none">なし</string>
+    <string name="compare_emotion_frequency">感情の頻度</string>
+    <string name="compare_compatibility_score">相性スコア</string>
+    <string name="compare_empty_title">2匹を追加してください</string>
+    <string name="compare_empty_description">上から2匹を選んで比較を表示します。</string>
+
+    <!-- Permissions Screen -->
+    <string name="permissions_title">権限が必要です</string>
+    <string name="permissions_description">正しく分析するため、カメラとメディアへのアクセスが必要です。</string>
+    <string name="permissions_camera_title">カメラ</string>
+    <string name="permissions_camera_description">写真や動画を撮影</string>
+    <string name="permissions_microphone_title">マイク</string>
+    <string name="permissions_microphone_description">鳴き声を録音</string>
+    <string name="permissions_photo_library_title">フォトライブラリ</string>
+    <string name="permissions_photo_library_description">ギャラリーから選択</string>
+    <string name="permissions_privacy_note">プライバシーを大切に。写真は端末内でのみ処理されます。</string>
+    <string name="permissions_camera_required">カメラ許可が必要です</string>
+    <string name="permissions_granted">許可済み</string>
+    <string name="permissions_allow">許可</string>
+
+    <!-- Error Messages -->
+    <string name="error_unexpected">カメラエラー</string>
+    <string name="error_permission_camera">カメラ権限が必要</string>
+    <string name="error_capture_failed">撮影失敗: %s</string>
+    <string name="error_no_photo">写真がありません</string>
+    <string name="error_recording_start_failed">録画開始に失敗: %s</string>
+    <string name="error_recording_stop_failed">録画停止に失敗: %s</string>
+    <string name="error_insufficient_coins">コイン不足</string>
+    <string name="error_analysis_failed">分析失敗。再試行してください。</string>
+    <string name="error_something_wrong">問題が発生しました。再試行してください。</string>
+    <string name="error_pet_not_found">ペットが見つかりません</string>
+    <string name="error_load_pet_failed">ペット読み込み失敗: %s</string>
+    <string name="error_pet_name_required">ペット名が必要です</string>
+    <string name="error_save_photo_failed">写真保存失敗: %s</string>
+    <string name="error_create_pet_failed">ペット作成失敗: %s</string>
+    <string name="error_save_pet_failed">ペット保存失敗: %s</string>
+    <string name="error_delete_pet_failed">削除失敗: %s</string>
+    <string name="error_load_pets_failed">ペット読み込み失敗: %s</string>
+    <string name="error_load_analyses_failed">%s の分析読み込み失敗: %s</string>
+    <string name="error_insufficient_coins_comparison">比較にコイン不足</string>
+    <string name="error_compare_failed">比較失敗</string>
+    <string name="error_comparison_failed">比較エラー</string>
+    <string name="error_load_data_failed">データ読み込み失敗: %s</string>
+    <string name="error_load_packages_failed">パッケージ読み込み失敗: %s</string>
+    <string name="error_purchase_validation_failed">購入検証失敗</string>
+    <string name="error_validation_failed">検証失敗: %s</string>
+    <string name="error_purchase_failed">購入失敗: %s</string>
+    <string name="error_purchase_error">購入エラー: %s</string>
+
+    <!-- Timestamps and Placeholders -->
+    <string name="timestamp_recently">最近</string>
+    <string name="timestamp_just_now">たった今</string>
+</resources>

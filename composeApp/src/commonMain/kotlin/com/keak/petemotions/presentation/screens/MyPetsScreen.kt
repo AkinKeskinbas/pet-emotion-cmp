@@ -21,8 +21,12 @@ import com.keak.petemotions.data.storage.MediaStorage
 import com.keak.petemotions.platform.loadImageFromBytes
 import com.keak.petemotions.presentation.navigation.AddEditPetRoute
 import com.keak.petemotions.presentation.viewmodel.MyPetsViewModel
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import petemotions.composeapp.generated.resources.Res
+import petemotions.composeapp.generated.resources.*
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,14 +41,14 @@ fun MyPetsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "My Pets",
+                        text = stringResource(Res.string.my_pets_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 }
             )
@@ -55,7 +59,7 @@ fun MyPetsScreen(
                     navController.navigate(AddEditPetRoute())
                 }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Pet")
+                Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.my_pets_add_pet))
             }
         }
     ) { paddingValues ->
@@ -166,7 +170,7 @@ fun PetCard(
                     if (avatarBitmap != null) {
                         Image(
                             bitmap = avatarBitmap!!,
-                            contentDescription = "${pet.name}'s photo",
+                            contentDescription = stringResource(Res.string.history_pet_photo).replace("%s", pet.name),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
@@ -206,7 +210,7 @@ fun PetCard(
                 }
 
                 Text(
-                    text = "Added ${formatTimestamp(pet.createdAt)}",
+                    text = stringResource(Res.string.my_pets_added).replace("%s", formatTimestamp(pet.createdAt)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -217,7 +221,7 @@ fun PetCard(
                 IconButton(onClick = onEdit) {
                     Icon(
                         Icons.Default.Edit,
-                        contentDescription = "Edit Pet",
+                        contentDescription = stringResource(Res.string.my_pets_edit_pet),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -225,7 +229,7 @@ fun PetCard(
                 IconButton(onClick = { showDeleteDialog = true }) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = "Delete Pet",
+                        contentDescription = stringResource(Res.string.my_pets_delete_pet),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -237,8 +241,8 @@ fun PetCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Pet") },
-            text = { Text("Are you sure you want to delete ${pet.name}? This action cannot be undone.") },
+            title = { Text(stringResource(Res.string.pet_delete_dialog_title)) },
+            text = { Text(stringResource(Res.string.pet_delete_dialog_message).replace("%s", pet.name)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -246,12 +250,12 @@ fun PetCard(
                         showDeleteDialog = false
                     }
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(Res.string.action_cancel))
                 }
             }
         )
@@ -283,7 +287,7 @@ fun EmptyPetsState(onAddPet: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "No pets added yet",
+                text = stringResource(Res.string.my_pets_empty_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -291,7 +295,7 @@ fun EmptyPetsState(onAddPet: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Add your first pet to start tracking their emotional journey!",
+                text = stringResource(Res.string.my_pets_empty_description),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -301,7 +305,7 @@ fun EmptyPetsState(onAddPet: () -> Unit) {
             Button(onClick = onAddPet) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Add Pet")
+                Text(stringResource(Res.string.my_pets_add_pet))
             }
         }
     }

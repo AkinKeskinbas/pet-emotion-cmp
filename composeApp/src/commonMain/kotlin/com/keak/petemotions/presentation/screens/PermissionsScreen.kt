@@ -18,6 +18,9 @@ import com.keak.petemotions.platform.PermissionService
 import com.keak.petemotions.platform.PermissionStatus
 import com.keak.petemotions.platform.PermissionType
 import org.koin.compose.koinInject
+import org.jetbrains.compose.resources.stringResource
+import petemotions.composeapp.generated.resources.Res
+import petemotions.composeapp.generated.resources.*
 
 @Composable
 expect fun rememberPermissionLauncher(
@@ -63,7 +66,7 @@ fun PermissionsScreen(
                 title = { },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 }
             )
@@ -109,7 +112,7 @@ fun PermissionsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Permissions Required",
+                    text = stringResource(Res.string.permissions_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -118,7 +121,7 @@ fun PermissionsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "To analyze your pet's emotions accurately, we need access to your device's camera and media library.",
+                    text = stringResource(Res.string.permissions_description),
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
@@ -133,24 +136,24 @@ fun PermissionsScreen(
             ) {
                 PermissionItem(
                     icon = Icons.Default.CameraAlt,
-                    title = "Camera Access",
-                    description = "Take photos and videos of your pet for emotion analysis",
+                    title = stringResource(Res.string.permissions_camera_title),
+                    description = stringResource(Res.string.permissions_camera_description),
                     isGranted = cameraPermissionGranted,
                     onRequest = cameraLauncher
                 )
 
                 PermissionItem(
                     icon = Icons.Default.Mic,
-                    title = "Microphone Access",
-                    description = "Record audio to capture your pet's vocalizations and sounds",
+                    title = stringResource(Res.string.permissions_microphone_title),
+                    description = stringResource(Res.string.permissions_microphone_description),
                     isGranted = microphonePermissionGranted,
                     onRequest = microphoneLauncher
                 )
 
                 PermissionItem(
                     icon = Icons.Default.PhotoLibrary,
-                    title = "Photo Library Access",
-                    description = "Select existing photos and videos from your gallery",
+                    title = stringResource(Res.string.permissions_photo_library_title),
+                    description = stringResource(Res.string.permissions_photo_library_description),
                     isGranted = photoLibraryPermissionGranted,
                     onRequest = photoLibraryLauncher
                 )
@@ -160,7 +163,7 @@ fun PermissionsScreen(
 
             // Privacy note
             Text(
-                text = "Your privacy matters. All analysis is performed locally on your device, and your photos are never uploaded to our servers.",
+                text = stringResource(Res.string.permissions_privacy_note),
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
@@ -181,7 +184,7 @@ fun PermissionsScreen(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
-                        text = "Continue",
+                        text = stringResource(Res.string.action_continue),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -190,7 +193,7 @@ fun PermissionsScreen(
                 if (!cameraPermissionGranted) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Camera permission is required to continue",
+                        text = stringResource(Res.string.permissions_camera_required),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         textAlign = TextAlign.Center
@@ -279,7 +282,7 @@ fun PermissionItem(
             if (isGranted) {
                 Icon(
                     Icons.Default.CheckCircle,
-                    contentDescription = "Granted",
+                    contentDescription = stringResource(Res.string.permissions_granted),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
@@ -288,7 +291,7 @@ fun PermissionItem(
                     onClick = onRequest,
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Allow")
+                    Text(stringResource(Res.string.permissions_allow))
                 }
             }
         }

@@ -23,6 +23,9 @@ import com.keak.petemotions.platform.createPlaceholderImage
 import com.keak.petemotions.platform.loadImageFromBytes
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.jetbrains.compose.resources.stringResource
+import petemotions.composeapp.generated.resources.Res
+import petemotions.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,7 +107,7 @@ fun ResultDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = { navController.navigateUp() }) {
-                            Text("Go Back")
+                            Text(stringResource(Res.string.result_go_back))
                         }
                     }
                 }

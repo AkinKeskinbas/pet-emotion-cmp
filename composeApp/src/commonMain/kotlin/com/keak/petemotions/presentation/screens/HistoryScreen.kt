@@ -26,6 +26,9 @@ import com.keak.petemotions.platform.loadImageFromBytes
 import com.keak.petemotions.presentation.navigation.ResultDetailRoute
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.jetbrains.compose.resources.stringResource
+import petemotions.composeapp.generated.resources.Res
+import petemotions.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,14 +126,14 @@ fun HistoryScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "History",
+                        text = stringResource(Res.string.history_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 }
             )
@@ -242,14 +245,14 @@ fun FiltersRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Filters",
+                    text = stringResource(Res.string.history_filters),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
 
                 if (selectedPetFilter != null || selectedEmotionFilter != null) {
                     TextButton(onClick = onClearFilters) {
-                        Text("Clear All")
+                        Text(stringResource(Res.string.action_clear_all))
                     }
                 }
             }
@@ -259,7 +262,7 @@ fun FiltersRow(
             // Pet filter
             if (pets.isNotEmpty()) {
                 Text(
-                    text = "Pet",
+                    text = stringResource(Res.string.history_pet_filter),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Medium
                 )
@@ -270,7 +273,7 @@ fun FiltersRow(
                     item {
                         FilterChip(
                             onClick = { onPetFilterChanged(null) },
-                            label = { Text("All Pets") },
+                            label = { Text(stringResource(Res.string.history_all_pets)) },
                             selected = selectedPetFilter == null
                         )
                     }
@@ -287,7 +290,7 @@ fun FiltersRow(
 
             // Emotion filter
             Text(
-                text = "Emotion",
+                text = stringResource(Res.string.history_emotion_filter),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium
             )
@@ -298,7 +301,7 @@ fun FiltersRow(
                 item {
                     FilterChip(
                         onClick = { onEmotionFilterChanged(null) },
-                        label = { Text("All") },
+                        label = { Text(stringResource(Res.string.history_all_emotions)) },
                         selected = selectedEmotionFilter == null
                     )
                 }
@@ -459,7 +462,7 @@ fun EmptyHistoryState(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = if (hasAnalyses) "No results found" else "No analyses yet",
+                text = if (hasAnalyses) stringResource(Res.string.history_empty_title_filtered) else stringResource(Res.string.history_empty_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -468,9 +471,9 @@ fun EmptyHistoryState(
 
             Text(
                 text = if (hasAnalyses) {
-                    "Try adjusting your filters to see more results."
+                    stringResource(Res.string.history_empty_description_filtered)
                 } else {
-                    "Start by taking a photo or video of your pet to analyze their emotions."
+                    stringResource(Res.string.history_empty_description)
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -481,7 +484,7 @@ fun EmptyHistoryState(
                 Button(onClick = onNavigateToCamera) {
                     Icon(Icons.Default.CameraAlt, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Take Photo")
+                    Text(stringResource(Res.string.home_take_photo))
                 }
             }
         }

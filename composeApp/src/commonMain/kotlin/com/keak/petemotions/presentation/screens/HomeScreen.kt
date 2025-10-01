@@ -17,7 +17,10 @@ import androidx.navigation.NavController
 import com.keak.petemotions.presentation.navigation.*
 import com.keak.petemotions.presentation.viewmodel.HomeViewModel
 import com.keak.petemotions.presentation.viewmodel.HomeUiState
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import petemotions.composeapp.generated.resources.Res
+import petemotions.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +35,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "PetEmotions",
+                        text = stringResource(Res.string.app_name),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -45,7 +48,7 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(onClick = { navController.navigate(MyPetsRoute) }) {
-                        Icon(Icons.Default.Pets, contentDescription = "My Pets")
+                        Icon(Icons.Default.Pets, contentDescription = stringResource(Res.string.nav_my_pets))
                     }
                 }
             )
@@ -91,7 +94,7 @@ fun HomeScreen(
             if (uiState.recentAnalyses.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Recent Analyses",
+                        text = stringResource(Res.string.home_recent_analyses),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(vertical = 8.dp)
@@ -136,7 +139,7 @@ fun PremiumShortcuts(navController: NavController) {
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Premium Features",
+                text = stringResource(Res.string.home_premium_features),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -147,17 +150,17 @@ fun PremiumShortcuts(navController: NavController) {
             ) {
                 ShortcutButton(
                     icon = Icons.Default.CameraAlt,
-                    text = "Camera",
+                    text = stringResource(Res.string.nav_camera),
                     onClick = { navController.navigate(CameraRoute) }
                 )
                 ShortcutButton(
                     icon = Icons.Default.History,
-                    text = "History",
+                    text = stringResource(Res.string.nav_history),
                     onClick = { navController.navigate(HistoryRoute) }
                 )
                 ShortcutButton(
                     icon = Icons.Default.Analytics,
-                    text = "Analysis",
+                    text = stringResource(Res.string.nav_analytics),
                     onClick = { navController.navigate(AdvancedAnalysisRoute) }
                 )
             }
@@ -179,7 +182,7 @@ fun FreeTierBanner(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Start analyzing your pet's emotions!",
+                text = stringResource(Res.string.home_start_analyzing),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -190,13 +193,13 @@ fun FreeTierBanner(navController: NavController) {
             ) {
                 Icon(Icons.Default.CameraAlt, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Take Photo")
+                Text(stringResource(Res.string.home_take_photo))
             }
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(
                 onClick = { navController.navigate(PaywallRoute) }
             ) {
-                Text("Unlock Unlimited Analysis")
+                Text(stringResource(Res.string.home_unlock_unlimited))
             }
         }
     }
@@ -205,7 +208,7 @@ fun FreeTierBanner(navController: NavController) {
 @Composable
 fun QuickActions(navController: NavController, isPremium: Boolean) {
     Text(
-        text = "Quick Actions",
+        text = stringResource(Res.string.home_quick_actions),
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(vertical = 8.dp)
@@ -218,15 +221,15 @@ fun QuickActions(navController: NavController, isPremium: Boolean) {
         ActionCard(
             modifier = Modifier.weight(1f),
             icon = Icons.Default.CameraAlt,
-            title = "Camera",
-            subtitle = "Capture moment",
+            title = stringResource(Res.string.quick_action_camera_title),
+            subtitle = stringResource(Res.string.quick_action_camera_subtitle),
             onClick = { navController.navigate(CameraRoute) }
         )
         ActionCard(
             modifier = Modifier.weight(1f),
             icon = Icons.Default.History,
-            title = "History",
-            subtitle = "View past analyses",
+            title = stringResource(Res.string.quick_action_history_title),
+            subtitle = stringResource(Res.string.quick_action_history_subtitle),
             onClick = { navController.navigate(HistoryRoute) }
         )
     }
@@ -240,15 +243,15 @@ fun QuickActions(navController: NavController, isPremium: Boolean) {
             ActionCard(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.Analytics,
-                title = "Analytics",
-                subtitle = "Advanced insights",
+                title = stringResource(Res.string.quick_action_analytics_title),
+                subtitle = stringResource(Res.string.quick_action_analytics_subtitle),
                 onClick = { navController.navigate(AdvancedAnalysisRoute) }
             )
             ActionCard(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.Pets,
-                title = "My Pets",
-                subtitle = "Manage pets",
+                title = stringResource(Res.string.quick_action_my_pets_title),
+                subtitle = stringResource(Res.string.quick_action_my_pets_subtitle),
                 onClick = { navController.navigate(MyPetsRoute) }
             )
         }
@@ -356,7 +359,7 @@ fun RecentAnalysisCard(
 
             Icon(
                 Icons.Default.ChevronRight,
-                contentDescription = "View details"
+                contentDescription = stringResource(Res.string.result_view_details)
             )
         }
     }
@@ -366,26 +369,26 @@ fun RecentAnalysisCard(
 fun BottomNavigationBar(navController: NavController) {
     NavigationBar {
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-            label = { Text("Home") },
+            icon = { Icon(Icons.Default.Home, contentDescription = stringResource(Res.string.nav_home)) },
+            label = { Text(stringResource(Res.string.nav_home)) },
             selected = true,
             onClick = { navController.navigate(HomeRoute) }
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Compare, contentDescription = "Compare") },
-            label = { Text("Compare") },
+            icon = { Icon(Icons.Default.Compare, contentDescription = stringResource(Res.string.nav_compare)) },
+            label = { Text(stringResource(Res.string.nav_compare)) },
             selected = false,
             onClick = { navController.navigate(CompareRoute) }
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.History, contentDescription = "History") },
-            label = { Text("History") },
+            icon = { Icon(Icons.Default.History, contentDescription = stringResource(Res.string.nav_history)) },
+            label = { Text(stringResource(Res.string.nav_history)) },
             selected = false,
             onClick = { navController.navigate(HistoryRoute) }
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Analytics, contentDescription = "Analytics") },
-            label = { Text("Analytics") },
+            icon = { Icon(Icons.Default.Analytics, contentDescription = stringResource(Res.string.nav_analytics)) },
+            label = { Text(stringResource(Res.string.nav_analytics)) },
             selected = false,
             onClick = { navController.navigate(AdvancedAnalysisRoute) }
         )
@@ -452,13 +455,13 @@ fun CoinBalanceCard(coinBalance: Int, onClick: () -> Unit) {
         ) {
             Column {
                 Text(
-                    text = "Your Coins",
+                    text = stringResource(Res.string.home_your_coins),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "Use coins to analyze your pet's emotions",
+                    text = stringResource(Res.string.home_coins_description),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
@@ -484,6 +487,7 @@ fun CoinBalanceCard(coinBalance: Int, onClick: () -> Unit) {
 }
 
 private fun formatTimestamp(timestamp: Long): String {
-    // TODO: Implement proper timestamp formatting
-    return "Recently"
+    // TODO: Implement proper timestamp formatting using kotlinx-datetime
+    // For now, returning a static string from resources
+    return "Recently" // This should be replaced with stringResource(Res.string.timestamp_recently) in composable context
 }

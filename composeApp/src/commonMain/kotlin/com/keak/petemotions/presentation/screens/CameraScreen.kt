@@ -36,6 +36,11 @@ expect fun rememberGalleryLauncher(
 ): () -> Unit
 
 @Composable
+expect fun rememberVideoLauncher(
+    onVideoSelected: (ByteArray) -> Unit
+): () -> Unit
+
+@Composable
 expect fun rememberCameraLauncher(
     onPhotoCaptured: (ByteArray) -> Unit
 ): () -> Unit
@@ -84,6 +89,10 @@ fun CameraScreen(
 
     val galleryLauncher = rememberGalleryLauncher { imageBytes ->
         viewModel.analyzeSelectedImage(imageBytes)
+    }
+
+    val videoLauncher = rememberVideoLauncher { videoBytes ->
+        viewModel.analyzeSelectedVideo(videoBytes)
     }
 
     val systemCameraLauncher = rememberCameraLauncher { imageBytes ->
@@ -182,19 +191,12 @@ fun CameraScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Capture mode toggle - Video coming soon
+            // Capture mode toggle
             CaptureMode_Toggle(
                 captureMode = uiState.captureMode,
                 onModeChanged = { mode ->
                     println("CameraScreen: Mode changed to: $mode")
-                    if (mode == CaptureMode.VIDEO) {
-                        // Show coming soon message for video
-                        println("CameraScreen: Video mode selected, showing coming soon message")
-                        viewModel.showComingSoonMessage("Video recording coming soon in v2!")
-                    } else {
-                        println("CameraScreen: Photo mode selected")
-                        viewModel.setCaptureMode(mode)
-                    }
+                    viewModel.setCaptureMode(mode)
                 }
             )
 
@@ -521,15 +523,27 @@ fun CameraScreen(
                     // Gallery button
                     IconButton(
                         onClick = {
-                            println("CameraScreen: Gallery button clicked")
-                            galleryLauncher()
+                            println("CameraScreen: Gallery button clicked, mode=${uiState.captureMode}")
+                            when (uiState.captureMode) {
+                                CaptureMode.PHOTO -> {
+                                    println("CameraScreen: Opening photo gallery")
+                                    galleryLauncher()
+                                }
+                                CaptureMode.VIDEO -> {
+                                    println("CameraScreen: Opening video gallery")
+                                    videoLauncher()
+                                }
+                            }
                         },
                         modifier = Modifier.size(56.dp),
                         enabled = !uiState.isAnalyzing
                     ) {
                         Icon(
-                            Icons.Default.PhotoLibrary,
-                            contentDescription = "Gallery",
+                            imageVector = if (uiState.captureMode == CaptureMode.PHOTO)
+                                Icons.Default.PhotoLibrary
+                            else
+                                Icons.Default.VideoLibrary,
+                            contentDescription = if (uiState.captureMode == CaptureMode.PHOTO) "Photo Gallery" else "Video Gallery",
                             modifier = Modifier.size(32.dp)
                         )
                     }

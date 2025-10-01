@@ -49,39 +49,3 @@ object AnalysisCost {
     const val BASIC_ANALYSIS = 1 // Keep for compatibility
 }
 
-// Default coin packages
-object CoinPackages {
-    val STARTER = CoinPackage(
-        id = "coins_10",
-        coinAmount = 10,
-        price = "\$0.99",
-        revenueCatProductId = "pet_emotions_coins_10"
-    )
-
-    val POPULAR = CoinPackage(
-        id = "coins_50",
-        coinAmount = 50,
-        price = "\$3.99",
-        revenueCatProductId = "pet_emotions_coins_50",
-        isPopular = true,
-        bonusPercentage = 20
-    )
-
-    val VALUE = CoinPackage(
-        id = "coins_100",
-        coinAmount = 100,
-        price = "\$6.99",
-        revenueCatProductId = "pet_emotions_coins_100",
-        bonusPercentage = 30
-    )
-
-    val PREMIUM = CoinPackage(
-        id = "coins_250",
-        coinAmount = 250,
-        price = "\$14.99",
-        revenueCatProductId = "pet_emotions_coins_250",
-        bonusPercentage = 40
-    )
-
-    val ALL_PACKAGES = listOf(STARTER, POPULAR, VALUE, PREMIUM)
-}

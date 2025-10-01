@@ -152,6 +152,19 @@ class CameraViewModel(
         analyzeMedia(imageBytes)
     }
 
+    fun analyzeSelectedVideo(videoBytes: ByteArray) {
+        println("ViewModel: analyzeSelectedVideo called with ${videoBytes.size} bytes")
+        // Set capture mode to video for selected videos
+        updateState {
+            it.copy(
+                captureMode = CaptureMode.VIDEO,
+                capturedPhotoBytes = null  // Clear any photo preview
+            )
+        }
+        // Use the existing analyzeMedia function
+        analyzeMedia(videoBytes)
+    }
+
     fun capturePhoto() {
         println("ViewModel: capturePhoto called")
         viewModelScope.launch(errorHandler) {

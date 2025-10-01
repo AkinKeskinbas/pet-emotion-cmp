@@ -62,20 +62,20 @@ fun PaywallBottomSheet(
 
     // Purchase function with receipt validation
     fun purchasePackage(option: CoinPackageOption) {
-        val revenueCatPackage = option.revenueCatPackage
-        if (revenueCatPackage == null) {
-            error = "This package is currently unavailable for purchase."
-            return
-        }
+        val productId = option.coinPackage.revenueCatProductId
 
         isPurchasing = true
-        purchasingPackageId = option.coinPackage.revenueCatProductId
+        purchasingPackageId = productId
         error = null
 
         coroutineScope.launch {
             try {
-                println("PaywallBottomSheet: Starting purchase for ${option.coinPackage.revenueCatProductId}")
-                val purchaseResult = coinService.purchaseCoins(revenueCatPackage)
+                println("=== PURCHASE STARTING ===")
+                println("Product ID: $productId")
+                println("Product Price: ${option.coinPackage.price}")
+                println("========================")
+
+                val purchaseResult = coinService.purchaseCoinsWithProductId(productId)
 
                 purchaseResult.fold(
                     onSuccess = { result ->
@@ -107,6 +107,8 @@ fun PaywallBottomSheet(
                     onFailure = { exception ->
                         error = "Purchase failed: ${exception.message}"
                         println("PaywallBottomSheet: RevenueCat purchase failed: ${exception.message}")
+                        println("PaywallBottomSheet: Exception details: ${exception}")
+                        exception.printStackTrace()
                     }
                 )
             } catch (e: Exception) {
@@ -317,23 +319,14 @@ fun PaywallBottomSheet(
                         }
                     }
                     else -> {
-                        // Dynamic coin packages from RevenueCat
-                        if (availablePackages.isNotEmpty() && availablePackages.all { it.revenueCatPackage == null }) {
-                            Text(
-                                text = "Store data is syncing. Packages will become available shortly.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                modifier = Modifier.padding(bottom = 12.dp)
-                            )
-                        }
-
+                        // Dynamic coin packages from product IDs
                         availablePackages.forEachIndexed { index, packageOption ->
                             val coinPackage = packageOption.coinPackage
                             CoinPackageCard(
                                 coinPackage = coinPackage,
                                 isPopular = coinPackage.isPopular,
                                 isLoading = isPurchasing && purchasingPackageId == coinPackage.revenueCatProductId,
-                                enabled = packageOption.revenueCatPackage != null && !isPurchasing,
+                                enabled = !isPurchasing, // Always enabled since we use direct product IDs
                                 onClick = { purchasePackage(packageOption) }
                             )
                             if (index < availablePackages.size - 1) {
@@ -432,32 +425,60 @@ private fun CoinPackageCard(
         } else null,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Box {
-            // Popular badge
-            if (isPopular) {
-                Card(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = (-8).dp, y = 8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = "POPULAR",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+        Column {
+            // Badges at the top
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp, end = 12.dp, start = 12.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                // Bonus badge - only show if we have actual coin data
+                if (coinPackage.bonusPercentage > 0 && coinPackage.coinAmount > 0) {
+                    val bonusAmount = coinPackage.coinAmount * coinPackage.bonusPercentage / 100
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = "+$bonusAmount",
+                            color = Color.White,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                        )
+                    }
+
+                    if (isPopular) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                }
+
+                // Popular badge
+                if (isPopular) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = "POPULAR",
+                            color = Color.White,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                        )
+                    }
                 }
             }
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
+                    .padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -468,29 +489,18 @@ private fun CoinPackageCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "${coinPackage.coinAmount} Coins",
+                            text = if (coinPackage.coinAmount > 0) {
+                                "${coinPackage.coinAmount}"
+                            } else {
+                                // Show the product identifier instead if no coin amount extracted
+                                coinPackage.revenueCatProductId.replace("pet_emotions_", "").replace("_", " ").replaceFirstChar { it.uppercase() }
+                            },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        if (coinPackage.bonusPercentage > 0) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "+${coinPackage.bonusPercentage}% Bonus",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "${coinPackage.coinAmount + (coinPackage.coinAmount * coinPackage.bonusPercentage / 100)} total coins",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
                 }
 
                 if (isLoading) {

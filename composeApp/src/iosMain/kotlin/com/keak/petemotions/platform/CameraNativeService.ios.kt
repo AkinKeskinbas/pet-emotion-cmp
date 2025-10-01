@@ -14,6 +14,7 @@ import platform.posix.memcpy
 actual class CameraNativeService {
     private var currentCameraCallback: ((ByteArray?) -> Unit)? = null
     private var currentGalleryCallback: ((ByteArray?) -> Unit)? = null
+    private var currentVideoGalleryCallback: ((ByteArray?) -> Unit)? = null
 
     actual fun openCamera(onResult: (ByteArray?) -> Unit) {
         currentCameraCallback = onResult
@@ -23,6 +24,68 @@ actual class CameraNativeService {
     actual fun openGallery(onResult: (ByteArray?) -> Unit) {
         currentGalleryCallback = onResult
         presentGalleryPicker()
+    }
+
+    fun openVideoGallery(onResult: (ByteArray?) -> Unit) {
+        currentVideoGalleryCallback = onResult
+        presentVideoGalleryPicker()
+    }
+
+    private fun presentVideoGalleryPicker() {
+        when (PHPhotoLibrary.authorizationStatus()) {
+            PHAuthorizationStatusAuthorized, PHAuthorizationStatusLimited -> {
+                showVideosPicker()
+            }
+            PHAuthorizationStatusNotDetermined -> {
+                PHPhotoLibrary.requestAuthorization { status ->
+                    if (status == PHAuthorizationStatusAuthorized || status == PHAuthorizationStatusLimited) {
+                        dispatch_async(dispatch_get_main_queue()) {
+                            showVideosPicker()
+                        }
+                    } else {
+                        println("iOS Native: Photo library access denied")
+                        currentVideoGalleryCallback?.invoke(null)
+                        currentVideoGalleryCallback = null
+                    }
+                }
+            }
+            else -> {
+                println("iOS Native: Photo library access denied or restricted")
+                currentVideoGalleryCallback?.invoke(null)
+                currentVideoGalleryCallback = null
+            }
+        }
+    }
+
+    private fun showVideosPicker() {
+        val presentingController = findTopViewController()
+        if (presentingController == null) {
+            println("iOS Native: Unable to locate a view controller to present the video picker")
+            currentVideoGalleryCallback?.invoke(null)
+            currentVideoGalleryCallback = null
+            return
+        }
+
+        val configuration = PHPickerConfiguration().apply {
+            filter = PHPickerFilter.videosFilter()
+            selectionLimit = 1
+        }
+
+        val picker = PHPickerViewController(configuration)
+
+        // Create delegate
+        val delegate = VideoPickerDelegate { videoBytes ->
+            currentVideoGalleryCallback?.invoke(videoBytes)
+            currentVideoGalleryCallback = null
+        }
+
+        // Store delegate to prevent garbage collection
+        GlobalDelegateStore.storeVideoDelegate(delegate)
+        picker.delegate = delegate
+
+        dispatch_async(dispatch_get_main_queue()) {
+            presentingController.presentViewController(picker, animated = true, completion = null)
+        }
     }
 
     actual fun hasCamera(): Boolean {
@@ -182,6 +245,7 @@ private tailrec fun UIViewController.resolveTopMost(): UIViewController {
 object GlobalDelegateStore {
     private var cameraDelegate: CameraPickerDelegate? = null
     private var photoDelegate: PhotoPickerDelegate? = null
+    private var videoDelegate: VideoPickerDelegate? = null
 
     fun storeCameraDelegate(delegate: CameraPickerDelegate) {
         cameraDelegate = delegate
@@ -189,6 +253,10 @@ object GlobalDelegateStore {
 
     fun storePhotoDelegate(delegate: PhotoPickerDelegate) {
         photoDelegate = delegate
+    }
+
+    fun storeVideoDelegate(delegate: VideoPickerDelegate) {
+        videoDelegate = delegate
     }
 }
 
@@ -258,6 +326,43 @@ class PhotoPickerDelegate(
         }
 
         println("iOS Native: No image selected")
+        onResult(null)
+    }
+}
+
+// Video picker delegate
+class VideoPickerDelegate(
+    private val onResult: (ByteArray?) -> Unit
+) : NSObject(), PHPickerViewControllerDelegateProtocol {
+
+    override fun picker(picker: PHPickerViewController, didFinishPicking: List<*>) {
+        picker.dismissViewControllerAnimated(true, null)
+
+        val results = didFinishPicking.filterIsInstance<PHPickerResult>()
+        if (results.isNotEmpty()) {
+            val result = results.first()
+            val itemProvider = result.itemProvider
+
+            val typeIdentifiers = itemProvider.registeredTypeIdentifiers as? List<*>
+            val preferredIdentifier = typeIdentifiers
+                ?.firstOrNull { identifier ->
+                    identifier is String && identifier.contains("movie", ignoreCase = true)
+                } as? String ?: "public.movie"
+
+            itemProvider.loadDataRepresentationForTypeIdentifier(preferredIdentifier) { data, error ->
+                if (error == null && data != null) {
+                    val bytes = data.toByteArray()
+                    println("iOS Native: Gallery video selected: ${bytes.size} bytes")
+                    onResult(bytes)
+                } else {
+                    println("iOS Native: Error loading gallery video: ${error?.localizedDescription}")
+                    onResult(null)
+                }
+            }
+            return
+        }
+
+        println("iOS Native: No video selected")
         onResult(null)
     }
 }

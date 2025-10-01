@@ -275,7 +275,8 @@ class BackendApiService(
                 platform = platform,
                 receipt = receipt,
                 transactionId = transactionId,
-                productId = productId
+                productId = productId,
+                revenueCatUserId = Purchases.sharedInstance.appUserID
             )
 
             println("Backend: Sending purchase validation request:")
@@ -283,7 +284,11 @@ class BackendApiService(
             println("  - Product ID: $productId")
             println("  - Transaction ID: $transactionId")
             println("  - Receipt length: ${receipt.length} chars")
+            println("  - Receipt preview: ${receipt.take(20)}...")
             println("  - URL: $baseUrl/v1/purchases:validate")
+            println("  - Auth token present: ${authToken != null}")
+            println("  - RevenueCat User ID (full): ${Purchases.sharedInstance.appUserID}")
+            println("  - RevenueCat User ID (sending to backend): ${request.revenueCatUserId}")
 
             // Serialize and print the actual JSON being sent (excluding receipt for brevity)
             val requestForLogging = request.copy(receipt = receipt.take(50) + "...")
@@ -311,6 +316,19 @@ class BackendApiService(
             } else {
                 val errorText = response.bodyAsText()
                 println("Backend: Purchase validation failed with status ${response.status}: $errorText")
+
+                // Special debugging for RevenueCat integration issues
+                if (errorText.contains("Google Play Error: Invalid Value")) {
+                    println("Backend: DEBUGGING - RevenueCat Google Play Integration Issue:")
+                    println("  - This usually indicates a problem with:")
+                    println("    1. RevenueCat product configuration")
+                    println("    2. Google Play Console setup")
+                    println("    3. Purchase token format mismatch")
+                    println("    4. Sandbox/Production environment mismatch")
+                    println("  - Receipt being sent: ${receipt.take(30)}...")
+                    println("  - Product ID being validated: $productId")
+                    println("  - Consider checking RevenueCat dashboard for product mapping")
+                }
 
                 // Try to parse structured error response
                 try {

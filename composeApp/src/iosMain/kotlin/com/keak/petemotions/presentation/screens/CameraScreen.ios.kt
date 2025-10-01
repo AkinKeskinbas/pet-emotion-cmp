@@ -48,3 +48,24 @@ actual fun rememberCameraLauncher(
         }
     }
 }
+
+@Composable
+actual fun rememberVideoLauncher(
+    onVideoSelected: (ByteArray) -> Unit
+): () -> Unit {
+    val cameraService = rememberCameraNativeService()
+    val latestCallback = rememberUpdatedState(onVideoSelected)
+
+    return remember(cameraService) {
+        {
+            cameraService.openVideoGallery { bytes ->
+                if (bytes != null) {
+                    println("iOS: Gallery video selected: ${bytes.size} bytes")
+                    latestCallback.value(bytes)
+                } else {
+                    println("iOS: Video gallery picker cancelled or failed")
+                }
+            }
+        }
+    }
+}

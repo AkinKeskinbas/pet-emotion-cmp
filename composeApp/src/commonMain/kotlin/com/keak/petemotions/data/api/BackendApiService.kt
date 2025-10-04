@@ -55,9 +55,9 @@ class BackendApiService(
 
             // Set timeouts for better error handling
             install(HttpTimeout) {
-                connectTimeoutMillis = 10_000  // 10 seconds
-                requestTimeoutMillis = 30_000  // 30 seconds
-                socketTimeoutMillis = 30_000   // 30 seconds
+                connectTimeoutMillis = 15_000   // 15 seconds
+                requestTimeoutMillis = 120_000  // 2 minutes for large video files
+                socketTimeoutMillis = 120_000   // 2 minutes for large video files
             }
         }
     }

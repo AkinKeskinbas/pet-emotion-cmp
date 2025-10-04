@@ -632,8 +632,35 @@ fun EmptyHistoryState(
     }
 }
 
+private fun normalizeEmotion(emotion: String): String {
+    val normalized = emotion.trim().lowercase()
+    return when {
+        // English
+        normalized in listOf("happy", "joy", "joyful") -> "happy"
+        normalized in listOf("relaxed", "calm") -> "relaxed"
+        normalized in listOf("playful", "play") -> "playful"
+        normalized == "curious" -> "curious"
+        normalized == "alert" -> "alert"
+        normalized in listOf("stressed", "stress") -> "stressed"
+        normalized == "sad" -> "sad"
+        normalized == "excited" -> "excited"
+        normalized in listOf("anxious", "anxiety") -> "anxious"
+        // Japanese
+        normalized.contains("幸せ") || normalized.contains("嬉し") -> "happy"
+        normalized.contains("リラックス") || normalized.contains("落ち着") -> "relaxed"
+        normalized.contains("遊び") || normalized.contains("元気") -> "playful"
+        normalized.contains("好奇心") || normalized.contains("興味") -> "curious"
+        normalized.contains("警戒") || normalized.contains("注意") -> "alert"
+        normalized.contains("ストレス") || normalized.contains("緊張") -> "stressed"
+        normalized.contains("悲し") -> "sad"
+        normalized.contains("興奮") -> "excited"
+        normalized.contains("不安") -> "anxious"
+        else -> normalized
+    }
+}
+
 private fun getEmotionEmoji(emotion: String): String {
-    return when (emotion.lowercase()) {
+    return when (normalizeEmotion(emotion)) {
         "happy" -> "😊"
         "relaxed" -> "😌"
         "curious" -> "🤔"
@@ -642,6 +669,7 @@ private fun getEmotionEmoji(emotion: String): String {
         "playful" -> "😸"
         "sad" -> "😢"
         "excited" -> "🤩"
+        "anxious" -> "😰"
         else -> "😐"
     }
 }

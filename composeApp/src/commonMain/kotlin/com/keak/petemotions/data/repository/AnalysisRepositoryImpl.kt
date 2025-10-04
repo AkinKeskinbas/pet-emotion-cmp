@@ -267,11 +267,11 @@ class AnalysisRepositoryImpl(
         }
     }
 
-    override suspend fun analyzeMediaWithAI(mediaBytes: ByteArray, apiKey: String): Result<AnalysisResult> {
+    override suspend fun analyzeMediaWithAI(mediaBytes: ByteArray, apiKey: String, mediaType: String): Result<AnalysisResult> {
         return try {
-            println("AnalysisRepository: Starting backend analysis for ${mediaBytes.size} bytes")
+            println("AnalysisRepository: Starting backend analysis for ${mediaBytes.size} bytes, type: $mediaType")
 
-            val backendResult = backendApiService.analyzeImage(mediaBytes)
+            val backendResult = backendApiService.analyzeMedia(mediaBytes, mediaType)
 
             backendResult.fold(
                 onSuccess = { result ->

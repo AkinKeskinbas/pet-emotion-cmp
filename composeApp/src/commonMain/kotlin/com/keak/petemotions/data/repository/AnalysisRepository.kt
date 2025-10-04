@@ -31,5 +31,5 @@ interface AnalysisRepository {
     // Media and AI analysis
     suspend fun saveMediaFile(mediaBytes: ByteArray, mediaType: String): String
     suspend fun loadMediaFile(mediaPath: String): ByteArray?
-    suspend fun analyzeMediaWithAI(mediaBytes: ByteArray, apiKey: String): Result<AnalysisResult>
+    suspend fun analyzeMediaWithAI(mediaBytes: ByteArray, apiKey: String, mediaType: String = "image"): Result<AnalysisResult>
 }

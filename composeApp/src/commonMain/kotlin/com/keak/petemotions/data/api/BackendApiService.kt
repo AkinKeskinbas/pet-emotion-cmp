@@ -144,7 +144,12 @@ class BackendApiService(
         }
     }
 
+    // Backwards compatibility
     suspend fun analyzeImage(imageBytes: ByteArray): Result<BackendAnalysisResult> {
+        return analyzeMedia(imageBytes, "image")
+    }
+
+    suspend fun analyzeMedia(mediaBytes: ByteArray, mediaType: String = "image"): Result<BackendAnalysisResult> {
         val currentLanguage = getCurrentLanguage()
         var attempt = 0
 
@@ -158,8 +163,15 @@ class BackendApiService(
                 return Result.failure(authError)
             }
 
+            val isVideo = mediaType.lowercase() == "video"
+            val contentType = if (isVideo) "video/mp4" else "image/jpeg"
+            val filename = if (isVideo) "video.mp4" else "image.jpg"
+            val fieldName = if (isVideo) "video" else "image"
+
             println("Backend: Sending analysis request with multipart:")
-            println("  - Image size: ${imageBytes.size} bytes")
+            println("  - Media size: ${mediaBytes.size} bytes")
+            println("  - Media type: $mediaType")
+            println("  - Content-Type: $contentType")
             println("  - URL: $baseUrl/v1/pet-emotions:analyze")
             println("  - Language: $currentLanguage")
             println("  - Attempt: $attempt")
@@ -174,9 +186,9 @@ class BackendApiService(
                         io.ktor.client.request.forms.MultiPartFormDataContent(
                             io.ktor.client.request.forms.formData {
                                 append("language", currentLanguage)
-                                append("image", imageBytes, io.ktor.http.Headers.build {
-                                    append(HttpHeaders.ContentType, "image/jpeg")
-                                    append(HttpHeaders.ContentDisposition, "filename=\"image.jpg\"")
+                                append(fieldName, mediaBytes, io.ktor.http.Headers.build {
+                                    append(HttpHeaders.ContentType, contentType)
+                                    append(HttpHeaders.ContentDisposition, "filename=\"$filename\"")
                                 })
                             }
                         )

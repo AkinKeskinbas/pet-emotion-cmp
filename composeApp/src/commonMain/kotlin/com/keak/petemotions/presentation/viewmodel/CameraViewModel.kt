@@ -274,7 +274,7 @@ class CameraViewModel(
                 println("ViewModel: Media saved to: $mediaPath")
 
                 // Analyze with backend (no API key needed anymore)
-                val analysisResult = analysisRepository.analyzeMediaWithAI(mediaBytes, "")
+                val analysisResult = analysisRepository.analyzeMediaWithAI(mediaBytes, "", mediaType)
 
                 analysisResult.fold(
                     onSuccess = { result ->

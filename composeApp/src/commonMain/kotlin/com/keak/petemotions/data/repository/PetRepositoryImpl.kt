@@ -5,9 +5,12 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.keak.petemotions.data.model.Pet
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -29,11 +32,11 @@ class PetRepositoryImpl(
             } catch (e: Exception) {
                 emptyList()
             }
-        }
+        }.flowOn(Dispatchers.Default)
     }
 
-    override suspend fun getPetById(id: String): Pet? {
-        return dataStore.data.map { preferences ->
+    override suspend fun getPetById(id: String): Pet? = withContext(Dispatchers.Default) {
+        return@withContext dataStore.data.map { preferences ->
             val petsJson = preferences[PETS_KEY] ?: "[]"
             try {
                 val pets = json.decodeFromString<List<Pet>>(petsJson)

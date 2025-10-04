@@ -106,3 +106,46 @@ actual fun rememberCameraLauncher(
         cameraLauncher.launch(intent)
     }
 }
+
+@Composable
+actual fun rememberVideoCameraLauncher(
+    onVideoRecorded: (ByteArray) -> Unit
+): () -> Unit {
+    val context: Context = getKoin().get()
+
+    val videoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            try {
+                val videoUri = result.data?.data
+                if (videoUri != null) {
+                    println("Android: Video captured, URI: $videoUri")
+                    context.contentResolver.openInputStream(videoUri)?.use { inputStream ->
+                        val bytes = inputStream.readBytes()
+                        println("Android: Video captured: ${bytes.size} bytes")
+                        onVideoRecorded(bytes)
+                    }
+                } else {
+                    println("Android: No video URI received")
+                }
+            } catch (e: Exception) {
+                println("Android: Video capture error: ${e.message}")
+                e.printStackTrace()
+            }
+        } else {
+            println("Android: Video capture cancelled or failed, resultCode: ${result.resultCode}")
+        }
+    }
+
+    return {
+        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
+            // Limit video duration to 5 seconds (5000 milliseconds)
+            putExtra(MediaStore.EXTRA_DURATION_LIMIT, 5)
+            // Set video quality (0 = low quality, smaller file size)
+            putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1)
+        }
+        println("Android: Launching video capture intent")
+        videoLauncher.launch(intent)
+    }
+}

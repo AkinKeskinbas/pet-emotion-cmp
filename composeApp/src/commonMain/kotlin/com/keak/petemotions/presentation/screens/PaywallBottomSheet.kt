@@ -1,5 +1,9 @@
 package com.keak.petemotions.presentation.screens
 
+// TODO: RevenueCat Paywall - Currently using Adapty instead
+// This implementation is kept for future reference
+// To use this, switch back in PaywallScreen.kt
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -251,13 +255,13 @@ fun PaywallBottomSheet(
                 FeatureItem(
                     icon = "🔄",
                     title = "Pet Comparison",
-                    description = "2 coins per comparison"
+                    description = "5 coins per comparison"
                 )
 
                 FeatureItem(
                     icon = "📊",
                     title = "Advanced Insights",
-                    description = "3 coins for detailed analytics"
+                    description = "1 coins for detailed analytics"
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -281,7 +285,7 @@ fun PaywallBottomSheet(
                 // Show loading or error state
                 when {
                     isLoading -> {
-                        repeat(4) {
+                        repeat(3) {
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -300,7 +304,7 @@ fun PaywallBottomSheet(
                                     )
                                 }
                             }
-                            if (it < 3) Spacer(modifier = Modifier.height(12.dp))
+                            if (it < 2) Spacer(modifier = Modifier.height(12.dp))
                         }
                     }
                     error != null -> {

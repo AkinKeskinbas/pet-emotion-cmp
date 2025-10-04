@@ -3,7 +3,9 @@ package com.keak.petemotions.presentation.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -47,6 +49,11 @@ expect fun rememberVideoLauncher(
 @Composable
 expect fun rememberCameraLauncher(
     onPhotoCaptured: (ByteArray) -> Unit
+): () -> Unit
+
+@Composable
+expect fun rememberVideoCameraLauncher(
+    onVideoRecorded: (ByteArray) -> Unit
 ): () -> Unit
 
 
@@ -105,6 +112,11 @@ fun CameraScreen(
         viewModel.onPhotoCaptured(imageBytes)
     }
 
+    val systemVideoCameraLauncher = rememberVideoCameraLauncher { videoBytes ->
+        println("CameraScreen: Video recorded: ${videoBytes.size} bytes")
+        viewModel.analyzeSelectedVideo(videoBytes)
+    }
+
     // Debug permission status
     LaunchedEffect(uiState.cameraPermissionStatus) {
         println("CameraScreen: Camera permission status = ${uiState.cameraPermissionStatus}")
@@ -159,10 +171,13 @@ fun CameraScreen(
             )
         }
     ) { paddingValues ->
+        val scrollState = rememberScrollState()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(scrollState)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -195,31 +210,23 @@ fun CameraScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Capture mode toggle
-            CaptureMode_Toggle(
-                captureMode = uiState.captureMode,
-                onModeChanged = { mode ->
-                    println("CameraScreen: Mode changed to: $mode")
-                    viewModel.setCaptureMode(mode)
-                }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Camera preview placeholder or permission request
-            Card(
+            // Camera preview placeholder or permission request with coin indicator
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(4f / 3f),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                    .aspectRatio(4f / 3f)
             ) {
-                Box(
+                Card(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
                     when {
                         uiState.cameraPermissionStatus != CameraPermissionStatus.GRANTED -> {
                             // Camera permission not granted
@@ -346,6 +353,39 @@ fun CameraScreen(
                             }
                         }
                     }
+                    }
+                }
+
+                // Coin cost indicator - overlay on top
+                Card(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Black.copy(alpha = 0.8f)
+                    ),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "🪙",
+                            fontSize = 16.sp
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = when (uiState.captureMode) {
+                                CaptureMode.PHOTO -> "${AnalysisCost.PHOTO_ANALYSIS} Coin"
+                                CaptureMode.VIDEO -> "${AnalysisCost.VIDEO_ANALYSIS} Coins"
+                            },
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
@@ -404,7 +444,7 @@ fun CameraScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Controls
             if (uiState.capturedPhotoBytes != null) {
@@ -451,25 +491,15 @@ fun CameraScreen(
                     }
                 }
             } else {
-                // Normal camera controls
+                // Normal camera controls - centered with gallery
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Flip camera button
-                    IconButton(
-                        onClick = { /* TODO: Implement camera flip */ },
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.FlipCameraAndroid,
-                            contentDescription = stringResource(Res.string.camera_flip),
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-
-                    // Capture button
+                    // Capture button - centered
                     FloatingActionButton(
                         onClick = {
                             // Don't handle clicks while analyzing
@@ -488,43 +518,47 @@ fun CameraScreen(
                                     }
                                 }
                                 CaptureMode.VIDEO -> {
-                                    if (uiState.isRecording) {
-                                        viewModel.stopVideoRecording()
-                                    } else {
-                                        // For video, we need both camera and microphone permissions
-                                        when {
-                                            uiState.cameraPermissionStatus != CameraPermissionStatus.GRANTED -> cameraPermissionLauncher()
-                                            uiState.microphonePermissionStatus != CameraPermissionStatus.GRANTED -> microphoneLauncher()
-                                            else -> viewModel.startVideoRecording()
+                                    println("CameraScreen: Video mode, permission=${uiState.cameraPermissionStatus}")
+                                    // For video, we need both camera and microphone permissions
+                                    when {
+                                        uiState.cameraPermissionStatus != CameraPermissionStatus.GRANTED -> {
+                                            println("CameraScreen: Requesting camera permission for video...")
+                                            cameraPermissionLauncher()
+                                        }
+                                        uiState.microphonePermissionStatus != CameraPermissionStatus.GRANTED -> {
+                                            println("CameraScreen: Requesting microphone permission for video...")
+                                            microphoneLauncher()
+                                        }
+                                        else -> {
+                                            println("CameraScreen: Opening system video camera...")
+                                            systemVideoCameraLauncher()
                                         }
                                     }
                                 }
                             }
                         },
                         modifier = Modifier.size(72.dp),
-                        containerColor = if (uiState.isRecording)
-                            MaterialTheme.colorScheme.error
-                        else if (uiState.isAnalyzing)
+                        containerColor = if (uiState.isAnalyzing)
                             MaterialTheme.colorScheme.outline
                         else
                             MaterialTheme.colorScheme.primary
                     ) {
                         Icon(
-                            imageVector = when {
-                                uiState.captureMode == CaptureMode.PHOTO -> Icons.Default.CameraAlt
-                                uiState.isRecording -> Icons.Default.Stop
-                                else -> Icons.Default.Videocam
+                            imageVector = when (uiState.captureMode) {
+                                CaptureMode.PHOTO -> Icons.Default.CameraAlt
+                                CaptureMode.VIDEO -> Icons.Default.Videocam
                             },
-                            contentDescription = when {
-                                uiState.captureMode == CaptureMode.PHOTO -> stringResource(Res.string.camera_take_photo)
-                                uiState.isRecording -> stringResource(Res.string.camera_stop_recording)
-                                else -> stringResource(Res.string.camera_start_recording)
+                            contentDescription = when (uiState.captureMode) {
+                                CaptureMode.PHOTO -> stringResource(Res.string.camera_take_photo)
+                                CaptureMode.VIDEO -> stringResource(Res.string.camera_start_recording)
                             },
                             modifier = Modifier.size(32.dp)
                         )
                     }
 
-                    // Gallery button
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Gallery button - next to capture
                     IconButton(
                         onClick = {
                             println("CameraScreen: Gallery button clicked, mode=${uiState.captureMode}")
@@ -547,14 +581,28 @@ fun CameraScreen(
                                 Icons.Default.PhotoLibrary
                             else
                                 Icons.Default.VideoLibrary,
-                            contentDescription = if (uiState.captureMode == CaptureMode.PHOTO) stringResource(Res.string.camera_photo_gallery) else stringResource(Res.string.camera_video_gallery),
+                            contentDescription = if (uiState.captureMode == CaptureMode.PHOTO)
+                                stringResource(Res.string.camera_photo_gallery)
+                            else
+                                stringResource(Res.string.camera_video_gallery),
                             modifier = Modifier.size(32.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Capture mode toggle - moved to bottom
+            CaptureMode_Toggle(
+                captureMode = uiState.captureMode,
+                onModeChanged = { mode ->
+                    println("CameraScreen: Mode changed to: $mode")
+                    viewModel.setCaptureMode(mode)
+                }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 
@@ -620,40 +668,38 @@ fun CaptureMode_Toggle(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.Center
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
     ) {
-        SegmentedButtonWithCost(
+        SegmentedButtonSimple(
             selected = captureMode == CaptureMode.PHOTO,
             onClick = { onModeChanged(CaptureMode.PHOTO) },
-            icon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
+            icon = { Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp)) },
             text = stringResource(Res.string.camera_mode_photo),
-            cost = AnalysisCost.PHOTO_ANALYSIS
+            modifier = Modifier.weight(1f)
         )
 
-        Spacer(modifier = Modifier.width(16.dp))
-
-        SegmentedButtonWithCost(
+        SegmentedButtonSimple(
             selected = captureMode == CaptureMode.VIDEO,
             onClick = { onModeChanged(CaptureMode.VIDEO) },
-            icon = { Icon(Icons.Default.Videocam, contentDescription = null) },
+            icon = { Icon(Icons.Default.Videocam, contentDescription = null, modifier = Modifier.size(20.dp)) },
             text = stringResource(Res.string.camera_mode_video),
-            cost = AnalysisCost.VIDEO_ANALYSIS
+            modifier = Modifier.weight(1f)
         )
     }
 }
 
 @Composable
-fun SegmentedButtonWithCost(
+fun SegmentedButtonSimple(
     selected: Boolean,
     onClick: () -> Unit,
     icon: @Composable () -> Unit,
     text: String,
-    cost: Int
+    modifier: Modifier = Modifier
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = Modifier.height(48.dp),
+        modifier = modifier.height(48.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
             contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
@@ -665,12 +711,49 @@ fun SegmentedButtonWithCost(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.Center
         ) {
             icon()
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelMedium
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+    }
+}
+
+@Composable
+fun SegmentedButtonWithCost(
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: @Composable () -> Unit,
+    text: String,
+    cost: Int,
+    modifier: Modifier = Modifier
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.height(56.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+        ),
+        border = BorderStroke(
+            width = if (selected) 2.dp else 1.dp,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+        )
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            icon()
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall
             )
             // Cost indicator
             Card(

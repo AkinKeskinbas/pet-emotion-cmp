@@ -395,7 +395,7 @@
 			repositoryURL = "https://github.com/RevenueCat/purchases-hybrid-common";
 			requirement = {
 				kind = exactVersion;
-				version = 17.0.0;
+				version = 17.7.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

@@ -22,7 +22,7 @@ ktor = "3.2.3"
 androidx-navigation = "2.9.0"
 bottomSheet = "0.1.5"
 
-purchases-kmp = "2.1.1+17.0.0"
+purchases-kmp = "2.1.5+17.7.0"
 datetime = "0.6.0"
 camerax = "1.5.0"
 permission = "0.38.0"

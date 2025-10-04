@@ -4,6 +4,7 @@ import com.keak.petemotions.data.model.CoinPackage
 import com.revenuecat.purchases.kmp.Purchases
 import com.revenuecat.purchases.kmp.ktx.SuccessfulPurchase
 import com.revenuecat.purchases.kmp.ktx.awaitCustomerInfo
+import com.revenuecat.purchases.kmp.ktx.awaitGetProducts
 import com.revenuecat.purchases.kmp.ktx.awaitOfferings
 import com.revenuecat.purchases.kmp.ktx.awaitPurchase
 import com.revenuecat.purchases.kmp.ktx.awaitRestore
@@ -15,7 +16,7 @@ import com.revenuecat.purchases.kmp.models.PurchasesException
 import com.revenuecat.purchases.kmp.models.PurchasesTransactionException
 import com.revenuecat.purchases.kmp.models.Store
 import com.revenuecat.purchases.kmp.models.StoreProduct
-import com.revenuecat.purchases.kmp.models.WinBackOffer
+import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -75,22 +76,57 @@ class CoinServiceImpl(
 
     override suspend fun getAvailablePackages(): Result<List<CoinPackageOption>> {
         return try {
-            val productIds = listOf("coin_mini", "coin_midi", "coin_mega")
-            println("CoinService: Getting products from RevenueCat: $productIds")
+            if (!Purchases.isConfigured) {
+                println("CoinService: RevenueCat not configured yet, returning empty list")
+                return Result.success(emptyList())
+            }
 
-            // Get actual products from RevenueCat using suspend wrapper
-            val storeProducts = getProductsFromRevenueCat(productIds)
+            val productIds = listOf("coin_mini", "coin_midi", "coin_mega")
+            println("CoinService: Getting products from RevenueCat with IDs: $productIds")
+
+            // Use callback-based API with timeout since awaitGetProducts hangs
+            println("CoinService: Calling getProducts with callback...")
+            val storeProducts = withTimeout(15000) { // 15 second timeout
+                suspendCoroutine { continuation ->
+                    Purchases.sharedInstance.getProducts(
+                        productIds = productIds,
+                        onError = { error ->
+                            println("CoinService: ❌ Error getting products")
+                            println("CoinService: Error message: ${error.message}")
+                            println("CoinService: Error code: ${error.code}")
+                            continuation.resumeWithException(Exception("Failed to get products: ${error.message}"))
+                        },
+                        onSuccess = { products ->
+                            println("CoinService: ✅ Successfully retrieved ${products.size} products")
+                            continuation.resume(products)
+                        }
+                    )
+                }
+            }
             println("CoinService: Retrieved ${storeProducts.size} products from RevenueCat")
+
+            if (storeProducts.isEmpty()) {
+                println("CoinService: ERROR - No products found from RevenueCat!")
+                println("CoinService: Make sure products are created in Google Play Console and RevenueCat")
+                println("CoinService: Required product IDs: $productIds")
+                return Result.failure(Exception("No products available. Please configure products in Google Play Console and RevenueCat."))
+            }
 
             val packages = storeProducts.map { storeProduct ->
                 val productId = storeProduct.id
-                val coinAmount = extractCoinAmountFromProductId(productId)
+                // Map product IDs to coin amounts
+                val coinAmount = when (productId) {
+                    "coin_mini" -> 10
+                    "coin_midi" -> 25
+                    "coin_mega" -> 100
+                    else -> extractCoinAmountFromProductId(productId)
+                }
                 val coinPackage = CoinPackage(
                     id = productId,
                     coinAmount = coinAmount,
                     price = storeProduct.price.formatted,
                     revenueCatProductId = productId,
-                    isPopular = productId.contains("midi"), // midi is popular
+                    isPopular = productId == "coin_midi", // midi is popular
                     bonusPercentage = 0
                 )
 
@@ -107,22 +143,10 @@ class CoinServiceImpl(
             Result.success(packages)
         } catch (e: Exception) {
             println("CoinService: Error creating packages from product IDs: ${e.message}")
+            println("CoinService: Exception type: ${e::class.simpleName}")
+            e.printStackTrace()
             Result.failure(e)
         }
-    }
-
-    private suspend fun getProductsFromRevenueCat(productIds: List<String>): List<StoreProduct> = suspendCoroutine { continuation ->
-        Purchases.sharedInstance.getProducts(
-            productIds = productIds,
-            onError = { error ->
-                println("RevenueCat: Error getting products: ${error.message}")
-                continuation.resumeWithException(Exception("Failed to get products: ${error.message}"))
-            },
-            onSuccess = { products ->
-                println("RevenueCat: Successfully retrieved ${products.size} products")
-                continuation.resume(products)
-            }
-        )
     }
 }
 
@@ -136,15 +160,23 @@ interface RevenueCatService {
 
 class RevenueCatServiceImpl : RevenueCatService {
 
-    init {
-        println("RevenueCatServiceImpl: Using existing RevenueCat configuration")
-        println("RevenueCat Environment Info:")
-        println("  - User ID: ${Purchases.sharedInstance.appUserID}")
-        println("  - Is Anonymous: ${Purchases.sharedInstance.isAnonymous}")
-        println("  - Store: ${Purchases.sharedInstance.store}")
+    private fun logRevenueCatInfo() {
+        if (Purchases.isConfigured) {
+            println("RevenueCatServiceImpl: Using existing RevenueCat configuration")
+            println("RevenueCat Environment Info:")
+            println("  - User ID: ${Purchases.sharedInstance.appUserID}")
+            println("  - Is Anonymous: ${Purchases.sharedInstance.isAnonymous}")
+            println("  - Store: ${Purchases.sharedInstance.store}")
+        } else {
+            println("RevenueCatServiceImpl: RevenueCat not yet configured - will be configured during app initialization")
+        }
     }
 
     override suspend fun getCustomerInfo(): RevenueCatCustomerInfo {
+        logRevenueCatInfo()
+        if (!Purchases.isConfigured) {
+            throw IllegalStateException("RevenueCat is not configured yet. Please wait for initialization to complete.")
+        }
         return try {
             val customerInfo = Purchases.sharedInstance.awaitCustomerInfo()
             println("RevenueCat Customer Info:")
@@ -182,8 +214,8 @@ class RevenueCatServiceImpl : RevenueCatService {
         return try {
             println("RevenueCat: Purchasing product directly: $productId")
 
-            // Get product details first
-            val storeProducts = getProductsFromRevenueCat(listOf(productId))
+            // Get product details first using awaitGetProducts
+            val storeProducts = Purchases.sharedInstance.awaitGetProducts(listOf(productId))
             if (storeProducts.isEmpty()) {
                 return Result.failure(Exception("Product $productId not found in store"))
             }
@@ -230,20 +262,6 @@ class RevenueCatServiceImpl : RevenueCatService {
             println("RevenueCat: Unexpected error fetching offerings: ${e.message}")
             Result.failure(e)
         }
-    }
-
-    private suspend fun getProductsFromRevenueCat(productIds: List<String>): List<StoreProduct> = suspendCoroutine { continuation ->
-        Purchases.sharedInstance.getProducts(
-            productIds = productIds,
-            onError = { error ->
-                println("RevenueCat: Error getting products: ${error.message}")
-                continuation.resumeWithException(Exception("Failed to get products: ${error.message}"))
-            },
-            onSuccess = { products ->
-                println("RevenueCat: Successfully retrieved ${products.size} products")
-                continuation.resume(products)
-            }
-        )
     }
 }
 

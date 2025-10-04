@@ -16,10 +16,14 @@ import java.io.ByteArrayOutputStream
 actual class CameraNativeService(
     private val context: Context,
     private val cameraLauncher: ActivityResultLauncher<Intent>?,
-    private val galleryLauncher: ActivityResultLauncher<String>?
+    private val galleryLauncher: ActivityResultLauncher<String>?,
+    private val videoGalleryLauncher: ActivityResultLauncher<String>?,
+    private val videoRecorderLauncher: ActivityResultLauncher<Intent>?
 ) {
     private var currentCameraCallback: ((ByteArray?) -> Unit)? = null
     private var currentGalleryCallback: ((ByteArray?) -> Unit)? = null
+    private var currentVideoGalleryCallback: ((ByteArray?) -> Unit)? = null
+    private var currentVideoRecordCallback: ((ByteArray?) -> Unit)? = null
 
     actual fun openCamera(onResult: (ByteArray?) -> Unit) {
         currentCameraCallback = onResult
@@ -30,6 +34,17 @@ actual class CameraNativeService(
     actual fun openGallery(onResult: (ByteArray?) -> Unit) {
         currentGalleryCallback = onResult
         galleryLauncher?.launch("image/*")
+    }
+
+    actual fun openVideoGallery(onResult: (ByteArray?) -> Unit) {
+        currentVideoGalleryCallback = onResult
+        videoGalleryLauncher?.launch("video/*")
+    }
+
+    actual fun recordVideo(onResult: (ByteArray?) -> Unit) {
+        currentVideoRecordCallback = onResult
+        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
+        videoRecorderLauncher?.launch(intent)
     }
 
     actual fun hasCamera(): Boolean {
@@ -93,6 +108,50 @@ actual class CameraNativeService(
         }
         currentGalleryCallback = null
     }
+
+    fun handleVideoGalleryResult(uri: Uri?) {
+        uri?.let {
+            try {
+                context.contentResolver.openInputStream(it)?.use { inputStream ->
+                    val bytes = inputStream.readBytes()
+                    println("Android Native: Gallery video selected: ${bytes.size} bytes")
+                    currentVideoGalleryCallback?.invoke(bytes)
+                }
+            } catch (e: Exception) {
+                println("Android Native: Error loading gallery video: ${e.message}")
+                currentVideoGalleryCallback?.invoke(null)
+            }
+        } ?: run {
+            println("Android Native: No video selected from gallery")
+            currentVideoGalleryCallback?.invoke(null)
+        }
+        currentVideoGalleryCallback = null
+    }
+
+    fun handleVideoRecordResult(result: androidx.activity.result.ActivityResult) {
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            try {
+                val videoUri = result.data?.data
+                videoUri?.let { uri ->
+                    context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                        val bytes = inputStream.readBytes()
+                        println("Android Native: Video recorded: ${bytes.size} bytes")
+                        currentVideoRecordCallback?.invoke(bytes)
+                    }
+                } ?: run {
+                    println("Android Native: No video URI received")
+                    currentVideoRecordCallback?.invoke(null)
+                }
+            } catch (e: Exception) {
+                println("Android Native: Video record error: ${e.message}")
+                currentVideoRecordCallback?.invoke(null)
+            }
+        } else {
+            println("Android Native: Video recording cancelled")
+            currentVideoRecordCallback?.invoke(null)
+        }
+        currentVideoRecordCallback = null
+    }
 }
 
 @Composable
@@ -112,9 +171,27 @@ actual fun rememberCameraNativeService(): CameraNativeService {
         service?.handleGalleryResult(uri)
     }
 
-    LaunchedEffect(Unit) {
-        service = CameraNativeService(context, cameraLauncher, galleryLauncher)
+    val videoGalleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        service?.handleVideoGalleryResult(uri)
     }
 
-    return service ?: CameraNativeService(context, null, null)
+    val videoRecorderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        service?.handleVideoRecordResult(result)
+    }
+
+    LaunchedEffect(Unit) {
+        service = CameraNativeService(
+            context,
+            cameraLauncher,
+            galleryLauncher,
+            videoGalleryLauncher,
+            videoRecorderLauncher
+        )
+    }
+
+    return service ?: CameraNativeService(context, null, null, null, null)
 }

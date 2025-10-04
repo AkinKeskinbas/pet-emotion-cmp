@@ -3,13 +3,11 @@ import ComposeApp
 @main
 struct iOSApp: App {
 	init() {
-		// Configure RevenueCat with error handling for sandbox/simulator environments
-		do {
-			RevenueCatInit.shared.configure(apiKey: PlatformKeys.shared.revenuecatApiKey,appUserId: nil)
-		} catch {
-			// RevenueCat errors are non-critical, app should continue working
-			print("RevenueCat initialization warning (non-critical): \(error.localizedDescription)")
-		}
+		// Initialize backend and RevenueCat synchronously
+		// This blocks until initialization is complete to ensure RevenueCat is ready
+		print("Swift: Calling blocking initialization...")
+		IOSAppKt.initializeIOSAppBlocking()
+		print("Swift: Initialization complete, showing UI")
 	}
     var body: some Scene {
         WindowGroup {

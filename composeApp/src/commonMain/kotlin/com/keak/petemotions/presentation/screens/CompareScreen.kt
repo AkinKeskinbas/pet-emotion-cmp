@@ -4,9 +4,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -23,7 +24,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.keak.petemotions.data.api.ComparisonResult
+import com.keak.petemotions.data.api.ComparisonResultWithCoinInfo
+import com.keak.petemotions.data.model.CompareHistoryRecord
 import com.keak.petemotions.data.model.Pet
 import com.keak.petemotions.data.storage.MediaStorage
 import com.keak.petemotions.platform.loadImageFromBytes
@@ -32,7 +34,38 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.jetbrains.compose.resources.stringResource
 import petemotions.composeapp.generated.resources.Res
-import petemotions.composeapp.generated.resources.*
+import petemotions.composeapp.generated.resources.action_back
+import petemotions.composeapp.generated.resources.compare_action_clear
+import petemotions.composeapp.generated.resources.compare_action_compare
+import petemotions.composeapp.generated.resources.compare_comparing
+import petemotions.composeapp.generated.resources.compare_compatibility_score
+import petemotions.composeapp.generated.resources.compare_emotion_empty
+import petemotions.composeapp.generated.resources.compare_emotion_frequency
+import petemotions.composeapp.generated.resources.compare_empty_description
+import petemotions.composeapp.generated.resources.compare_empty_title
+import petemotions.composeapp.generated.resources.compare_pair_heading
+import petemotions.composeapp.generated.resources.compare_prompt_button
+import petemotions.composeapp.generated.resources.compare_prompt_description
+import petemotions.composeapp.generated.resources.compare_prompt_title
+import petemotions.composeapp.generated.resources.compare_section_key_differences
+import petemotions.composeapp.generated.resources.compare_section_recommendations
+import petemotions.composeapp.generated.resources.compare_section_shared_traits
+import petemotions.composeapp.generated.resources.compare_select_pet
+import petemotions.composeapp.generated.resources.compare_select_pet_content_description
+import petemotions.composeapp.generated.resources.compare_title
+import petemotions.composeapp.generated.resources.compare_error_dismiss
+import petemotions.composeapp.generated.resources.compare_pet_a
+import petemotions.composeapp.generated.resources.compare_pet_b
+import petemotions.composeapp.generated.resources.emotion_alert
+import petemotions.composeapp.generated.resources.emotion_anxious
+import petemotions.composeapp.generated.resources.emotion_curious
+import petemotions.composeapp.generated.resources.emotion_excited
+import petemotions.composeapp.generated.resources.emotion_happy
+import petemotions.composeapp.generated.resources.emotion_playful
+import petemotions.composeapp.generated.resources.emotion_relaxed
+import petemotions.composeapp.generated.resources.emotion_sad
+import petemotions.composeapp.generated.resources.emotion_stressed
+import kotlin.math.max
 
 // Design tokens from compare.md
 object CompareDesignTokens {
@@ -55,9 +88,25 @@ object CompareDesignTokens {
 @Composable
 fun CompareScreen(
     navController: NavController,
+    historyRecordId: String? = null,
     viewModel: CompareViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val selectedPetA = uiState.selectedPetA
+    val selectedPetB = uiState.selectedPetB
+    val comparisonResult = uiState.comparisonResult
+    val historyRecord = uiState.historyRecord
+
+    LaunchedEffect(historyRecordId) {
+        historyRecordId?.let { viewModel.showComparisonFromHistory(it) }
+    }
+
+    LaunchedEffect(comparisonResult) {
+        println("CompareScreen: comparisonResult updated -> ${comparisonResult?.compatibilityScore}")
+    }
+
+    val scrollState = rememberScrollState()
 
     Scaffold(
         modifier = Modifier.background(CompareDesignTokens.bgPage),
@@ -65,7 +114,7 @@ fun CompareScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Compare Results",
+                        text = stringResource(Res.string.compare_title),
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold
@@ -77,7 +126,7 @@ fun CompareScreen(
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
                             Icons.Default.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(Res.string.action_back),
                             tint = CompareDesignTokens.textPrimary
                         )
                     }
@@ -127,13 +176,13 @@ fun CompareScreen(
                                             color = CompareDesignTokens.buttonText
                                         )
                                         Text(
-                                            text = "Comparing...",
+                                            text = stringResource(Res.string.compare_comparing),
                                             fontSize = 16.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                     } else {
                                         Text(
-                                            text = "Compare",
+                                            text = stringResource(Res.string.compare_action_compare),
                                             fontSize = 16.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -177,7 +226,7 @@ fun CompareScreen(
                                 )
                             ) {
                                 Text(
-                                    text = "Clear",
+                                    text = stringResource(Res.string.compare_action_clear),
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -188,60 +237,63 @@ fun CompareScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(CompareDesignTokens.bgPage)
                 .padding(paddingValues)
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 20.dp)
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(8.dp)) }
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Pet Selection Row
-            item {
-                PetSelectionRow(
-                    petA = uiState.selectedPetA,
-                    petB = uiState.selectedPetB,
-                    availablePets = uiState.availablePets,
-                    onPetASelected = viewModel::selectPetA,
-                    onPetBSelected = viewModel::selectPetB
+            uiState.error?.let { error ->
+                ErrorCard(
+                    message = error.message,
+                    onDismiss = viewModel::dismissError
                 )
             }
 
-            // Show comparison content only if both pets are selected
-            if (uiState.selectedPetA != null && uiState.selectedPetB != null) {
-                if (uiState.isLoading) {
-                    item {
-                        LoadingShimmer()
-                    }
-                } else if (uiState.comparisonResult != null) {
-                    // Emotion Frequency Section
-                    item {
+            PetSelectionRow(
+                petA = selectedPetA,
+                petB = selectedPetB,
+                availablePets = uiState.availablePets,
+                onPetASelected = viewModel::selectPetA,
+                onPetBSelected = viewModel::selectPetB,
+                fallbackPetAName = historyRecord?.petAName,
+                fallbackPetBName = historyRecord?.petBName
+            )
+
+            when {
+                comparisonResult != null -> {
+                    if (selectedPetA != null && selectedPetB != null &&
+                        !uiState.petAEmotionStats.isNullOrEmpty() && !uiState.petBEmotionStats.isNullOrEmpty()
+                    ) {
                         EmotionFrequencySection(
-                            petA = uiState.selectedPetA!!,
-                            petB = uiState.selectedPetB!!,
+                            petA = selectedPetA,
+                            petB = selectedPetB,
                             petAEmotions = uiState.petAEmotionStats ?: emptyMap(),
                             petBEmotions = uiState.petBEmotionStats ?: emptyMap()
                         )
                     }
 
-                    // Comparison Results Section
-                    item {
-                        ComparisonResultsSection(
-                            petA = uiState.selectedPetA!!,
-                            petB = uiState.selectedPetB!!,
-                            comparisonResult = uiState.comparisonResult!!
-                        )
-                    }
+                    ComparisonResultsSection(
+                        petA = selectedPetA,
+                        petB = selectedPetB,
+                        historyRecord = historyRecord,
+                        comparisonResult = comparisonResult
+                    )
                 }
-            } else {
-                item {
-                    EmptyState()
-                }
+
+                uiState.isLoading -> LoadingShimmer()
+
+                selectedPetA == null || selectedPetB == null -> EmptyState()
+
+                else -> PromptToCompareAgain(onCompare = viewModel::startComparison)
             }
 
-            item { Spacer(modifier = Modifier.height(16.dp)) }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -252,8 +304,13 @@ fun PetSelectionRow(
     petB: Pet?,
     availablePets: List<Pet>,
     onPetASelected: (Pet?) -> Unit,
-    onPetBSelected: (Pet?) -> Unit
+    onPetBSelected: (Pet?) -> Unit,
+    fallbackPetAName: String? = null,
+    fallbackPetBName: String? = null
 ) {
+    val petALabel = stringResource(Res.string.compare_pet_a)
+    val petBLabel = stringResource(Res.string.compare_pet_b)
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(24.dp)
@@ -264,7 +321,9 @@ fun PetSelectionRow(
             selectedPet = petA,
             availablePets = availablePets,
             onPetSelected = onPetASelected,
-            label = "Pet A"
+            label = petALabel,
+            fallbackName = fallbackPetAName,
+            excludePet = petB // Exclude Pet B from Pet A's dropdown
         )
 
         // Pet B
@@ -273,7 +332,9 @@ fun PetSelectionRow(
             selectedPet = petB,
             availablePets = availablePets,
             onPetSelected = onPetBSelected,
-            label = "Pet B"
+            label = petBLabel,
+            fallbackName = fallbackPetBName,
+            excludePet = petA // Exclude Pet A from Pet B's dropdown
         )
     }
 }
@@ -284,7 +345,9 @@ fun PetSelectionCard(
     selectedPet: Pet?,
     availablePets: List<Pet>,
     onPetSelected: (Pet?) -> Unit,
-    label: String
+    label: String,
+    fallbackName: String? = null,
+    excludePet: Pet? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
     val mediaStorage: MediaStorage = koinInject()
@@ -343,7 +406,7 @@ fun PetSelectionCard(
                 } else {
                     Icon(
                         Icons.Default.Add,
-                        contentDescription = "Select pet",
+                        contentDescription = stringResource(Res.string.compare_select_pet_content_description),
                         tint = CompareDesignTokens.textSecondary
                     )
                 }
@@ -352,8 +415,10 @@ fun PetSelectionCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Name
+            val placeholder = "${stringResource(Res.string.compare_select_pet)} $label"
+            val displayName = selectedPet?.name ?: fallbackName ?: placeholder
             Text(
-                text = selectedPet?.name ?: "Select $label",
+                text = displayName,
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
@@ -372,19 +437,32 @@ fun PetSelectionCard(
         onDismissRequest = { expanded = false }
     ) {
         DropdownMenuItem(
-            text = { Text(stringResource(Res.string.compare_none)) },
+            text = { Text("None") },
             onClick = {
                 onPetSelected(null)
                 expanded = false
             }
         )
         availablePets.forEach { pet ->
+            val isExcluded = excludePet != null && pet.id == excludePet.id
             DropdownMenuItem(
-                text = { Text(pet.name) },
+                text = {
+                    Text(
+                        text = pet.name,
+                        color = if (isExcluded) {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                },
                 onClick = {
-                    onPetSelected(pet)
-                    expanded = false
-                }
+                    if (!isExcluded) {
+                        onPetSelected(pet)
+                        expanded = false
+                    }
+                },
+                enabled = !isExcluded
             )
         }
     }
@@ -410,7 +488,7 @@ fun EmotionFrequencySection(
                 .padding(20.dp)
         ) {
             Text(
-                text = "Emotion Frequency",
+                text = stringResource(Res.string.compare_emotion_frequency),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
@@ -420,24 +498,52 @@ fun EmotionFrequencySection(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val emotions = listOf(
-                "Happy" to CompareDesignTokens.barHappy,
-                "Sad" to CompareDesignTokens.barSad,
-                "Playful" to CompareDesignTokens.barPlayful,
-                "Anxious" to CompareDesignTokens.barAnxious
-            )
+            val combinedEmotions = (petAEmotions.keys + petBEmotions.keys)
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .toSet()
 
-            emotions.forEach { (emotion, color) ->
-                EmotionProgressRow(
-                    emotion = emotion,
-                    petAName = petA.name,
-                    petBName = petB.name,
-                    petAValue = petAEmotions[emotion.lowercase()] ?: 0f,
-                    petBValue = petBEmotions[emotion.lowercase()] ?: 0f,
-                    color = color
+            if (combinedEmotions.isEmpty()) {
+                Text(
+                    text = stringResource(Res.string.compare_emotion_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = CompareDesignTokens.textSecondary
                 )
-                if (emotion != emotions.last().first) {
-                    Spacer(modifier = Modifier.height(16.dp))
+            } else {
+                val emotionEntries = combinedEmotions
+                    .sortedByDescending { key ->
+                        max(petAEmotions[key] ?: 0f, petBEmotions[key] ?: 0f)
+                    }
+                    .mapIndexed { index, emotionKey ->
+                        val displayLabel = emotionDisplayName(emotionKey)
+                        val color = emotionColorFor(emotionKey, index)
+                        val petAValue = (petAEmotions[emotionKey] ?: 0f).coerceIn(0f, 1f)
+                        val petBValue = (petBEmotions[emotionKey] ?: 0f).coerceIn(0f, 1f)
+                        EmotionEntry(displayLabel, color, petAValue, petBValue)
+                    }
+                    .filter { entry -> entry.petAValue > 0f || entry.petBValue > 0f }
+
+                if (emotionEntries.isEmpty()) {
+                    Text(
+                        text = stringResource(Res.string.compare_emotion_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = CompareDesignTokens.textSecondary
+                    )
+                } else {
+                    emotionEntries.forEachIndexed { index, entry ->
+                        EmotionProgressRow(
+                            emotionLabel = entry.displayLabel,
+                            petAName = petA.name,
+                            petBName = petB.name,
+                            petAValue = entry.petAValue,
+                            petBValue = entry.petBValue,
+                            color = entry.color
+                        )
+
+                        if (index != emotionEntries.lastIndex) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
                 }
             }
         }
@@ -446,7 +552,7 @@ fun EmotionFrequencySection(
 
 @Composable
 fun EmotionProgressRow(
-    emotion: String,
+    emotionLabel: String,
     petAName: String,
     petBName: String,
     petAValue: Float,
@@ -455,7 +561,7 @@ fun EmotionProgressRow(
 ) {
     Column {
         Text(
-            text = emotion,
+            text = emotionLabel,
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
@@ -475,8 +581,7 @@ fun EmotionProgressRow(
                 modifier = Modifier.weight(0.45f),
                 petName = petAName,
                 value = petAValue,
-                color = color,
-                emotion = emotion
+                color = color
             )
 
             // Pet B Progress Bar
@@ -484,8 +589,7 @@ fun EmotionProgressRow(
                 modifier = Modifier.weight(0.45f),
                 petName = petBName,
                 value = petBValue,
-                color = color,
-                emotion = emotion
+                color = color
             )
         }
     }
@@ -496,8 +600,7 @@ fun EmotionProgressBar(
     modifier: Modifier = Modifier,
     petName: String,
     value: Float,
-    color: Color,
-    emotion: String
+    color: Color
 ) {
     Column(modifier = modifier) {
         Row(
@@ -551,13 +654,23 @@ fun EmotionProgressBar(
 
 @Composable
 fun ComparisonResultsSection(
-    petA: Pet,
-    petB: Pet,
-    comparisonResult: ComparisonResult
+    petA: Pet?,
+    petB: Pet?,
+    historyRecord: CompareHistoryRecord?,
+    comparisonResult: ComparisonResultWithCoinInfo
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        val petAName = petA?.name ?: historyRecord?.petAName ?: stringResource(Res.string.compare_pet_a)
+        val petBName = petB?.name ?: historyRecord?.petBName ?: stringResource(Res.string.compare_pet_b)
+
+        Text(
+            text = stringResource(Res.string.compare_pair_heading, petAName, petBName),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+
         // Compatibility Score Card
         CompatibilityScoreCard(
             compatibilityScore = comparisonResult.compatibilityScore,
@@ -567,7 +680,7 @@ fun ComparisonResultsSection(
         // Shared Traits Card
         if (comparisonResult.sharedTraits.isNotEmpty()) {
             TraitsCard(
-                title = "Shared Traits",
+                title = stringResource(Res.string.compare_section_shared_traits),
                 traits = comparisonResult.sharedTraits,
                 cardColor = Color.White,
                 iconColor = CompareDesignTokens.barHappy
@@ -577,7 +690,7 @@ fun ComparisonResultsSection(
         // Key Differences Card
         if (comparisonResult.keyDifferences.isNotEmpty()) {
             TraitsCard(
-                title = "Key Differences",
+                title = stringResource(Res.string.compare_section_key_differences),
                 traits = comparisonResult.keyDifferences,
                 cardColor = Color.White,
                 iconColor = CompareDesignTokens.barSad
@@ -587,7 +700,7 @@ fun ComparisonResultsSection(
         // Recommendations Card
         if (comparisonResult.recommendations.isNotEmpty()) {
             TraitsCard(
-                title = "Recommendations",
+                title = stringResource(Res.string.compare_section_recommendations),
                 traits = comparisonResult.recommendations,
                 cardColor = CompareDesignTokens.chipCardBg,
                 iconColor = CompareDesignTokens.buttonPrimaryBg
@@ -619,7 +732,7 @@ fun CompatibilityScoreCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Compatibility Score",
+                    text = stringResource(Res.string.compare_compatibility_score),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
@@ -635,7 +748,7 @@ fun CompatibilityScoreCard(
                     )
                 ) {
                     Text(
-                        text = "${(compatibilityScore * 100).toInt()}%",
+                        text = "${(compatibilityScore / 5.0 * 100).toInt()}%",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
@@ -763,6 +876,146 @@ fun LoadingShimmer() {
 }
 
 @Composable
+private fun emotionDisplayName(emotion: String): String {
+    val normalized = emotion.trim().lowercase()
+    val resId = when (normalized) {
+        "happy", "joy", "joyful" -> Res.string.emotion_happy
+        "relaxed", "calm" -> Res.string.emotion_relaxed
+        "playful", "play" -> Res.string.emotion_playful
+        "curious" -> Res.string.emotion_curious
+        "alert" -> Res.string.emotion_alert
+        "stressed", "stress" -> Res.string.emotion_stressed
+        "sad" -> Res.string.emotion_sad
+        "excited" -> Res.string.emotion_excited
+        "anxious", "anxiety" -> Res.string.emotion_anxious
+        else -> null
+    }
+
+    return if (resId != null) {
+        stringResource(resId)
+    } else {
+        emotion.ifBlank { "-" }.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+    }
+}
+
+private val fallbackEmotionColors = listOf(
+    CompareDesignTokens.barPlayful,
+    CompareDesignTokens.barAnxious,
+    CompareDesignTokens.barSad,
+    CompareDesignTokens.buttonPrimaryBg
+)
+
+private fun emotionColorFor(emotion: String, index: Int): Color {
+    val normalized = emotion.trim().lowercase()
+    return when (normalized) {
+        "happy", "joy", "joyful" -> CompareDesignTokens.barHappy
+        "sad" -> CompareDesignTokens.barSad
+        "playful", "play" -> CompareDesignTokens.barPlayful
+        "anxious", "anxiety" -> CompareDesignTokens.barAnxious
+        else -> fallbackEmotionColors[index % fallbackEmotionColors.size]
+    }
+}
+
+private data class EmotionEntry(
+    val displayLabel: String,
+    val color: Color,
+    val petAValue: Float,
+    val petBValue: Float
+)
+
+@Composable
+fun PromptToCompareAgain(onCompare: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = CompareDesignTokens.chipCardBg
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(Res.string.compare_prompt_title),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = CompareDesignTokens.textPrimary,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = stringResource(Res.string.compare_prompt_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = CompareDesignTokens.textSecondary,
+                textAlign = TextAlign.Center
+            )
+
+            Button(
+                onClick = onCompare,
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = CompareDesignTokens.buttonPrimaryBg,
+                    contentColor = CompareDesignTokens.buttonText
+                )
+            ) {
+                Text(
+                    text = stringResource(Res.string.compare_prompt_button),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ErrorCard(
+    message: String,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFE5E5)),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.ErrorOutline,
+                contentDescription = null,
+                tint = Color(0xFFB42318)
+            )
+
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF7A271A),
+                modifier = Modifier.weight(1f)
+            )
+
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(Res.string.compare_error_dismiss),
+                    tint = Color(0xFF7A271A)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun EmptyState() {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -787,7 +1040,7 @@ fun EmptyState() {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Add two pets to compare.",
+                text = stringResource(Res.string.compare_empty_title),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
@@ -799,7 +1052,7 @@ fun EmptyState() {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Select two pets above to see their emotion analysis comparison.",
+                text = stringResource(Res.string.compare_empty_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = CompareDesignTokens.textSecondary,
                 textAlign = TextAlign.Center

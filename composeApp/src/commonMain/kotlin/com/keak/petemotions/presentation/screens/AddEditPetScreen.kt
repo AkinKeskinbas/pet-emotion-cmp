@@ -216,7 +216,7 @@ fun AddEditPetScreen(
                         onDismissRequest = { showDeleteDialog = false },
                         title = { Text(stringResource(Res.string.pet_delete_dialog_title)) },
                         text = {
-                            Text(stringResource(Res.string.pet_delete_with_records_message).replace("%s", uiState.name))
+                            Text("${stringResource(Res.string.pet_delete_dialog_message_with_name)} ${uiState.name}${stringResource(Res.string.pet_delete_with_records_question)}")
                         },
                         confirmButton = {
                             TextButton(

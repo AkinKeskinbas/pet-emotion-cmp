@@ -3,6 +3,12 @@ package com.keak.petemotions.presentation.navigation
 import kotlinx.serialization.Serializable
 
 @Serializable
+object SplashRoute
+
+@Serializable
+object OnboardingRoute
+
+@Serializable
 object WelcomeRoute
 
 @Serializable
@@ -33,4 +39,4 @@ object PaywallRoute
 object PermissionsRoute
 
 @Serializable
-object CompareRoute
+data class CompareRoute(val historyRecordId: String? = null)

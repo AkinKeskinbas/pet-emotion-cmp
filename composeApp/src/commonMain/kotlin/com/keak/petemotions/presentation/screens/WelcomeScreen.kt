@@ -81,9 +81,12 @@ fun WelcomeScreen(
             ) {
                 TextButton(
                     onClick = {
-                        navController.navigate(PermissionsRoute) {
-                            popUpTo(navController.graph.startDestinationId) {
-                                inclusive = true
+                        coroutineScope.launch {
+                            preferencesRepository.setHasCompletedOnboarding(true)
+                            navController.navigate(PermissionsRoute) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    inclusive = true
+                                }
                             }
                         }
                     }
@@ -173,9 +176,12 @@ fun WelcomeScreen(
                     // Get Started button (final page)
                     Button(
                         onClick = {
-                            navController.navigate(PermissionsRoute) {
-                                popUpTo(navController.graph.startDestinationId) {
-                                    inclusive = true
+                            coroutineScope.launch {
+                                preferencesRepository.setHasCompletedOnboarding(true)
+                                navController.navigate(PermissionsRoute) {
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        inclusive = true
+                                    }
                                 }
                             }
                         },

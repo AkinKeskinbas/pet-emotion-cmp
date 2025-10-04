@@ -66,7 +66,7 @@
     <string name="my_pets_delete_pet">Delete Pet</string>
     <string name="my_pets_empty_title">No pets added yet</string>
     <string name="my_pets_empty_description">Add your first pet to start tracking their emotional journey!</string>
-    <string name="my_pets_added">Added %s</string>
+    <string name="my_pets_added">Added</string>
 
     <!-- Add/Edit Pet Screen -->
     <string name="add_pet_title">Add Pet</string>
@@ -83,8 +83,11 @@
     <string name="pet_add_photo">Add Photo</string>
     <string name="pet_change_photo">Change Photo</string>
     <string name="pet_delete_dialog_title">Delete Pet</string>
-    <string name="pet_delete_dialog_message">Are you sure you want to delete %s? This action cannot be undone.</string>
-    <string name="pet_delete_with_records_message">Are you sure you want to delete %s? This will also delete all associated analysis records. This action cannot be undone.</string>
+    <string name="pet_delete_dialog_message">Are you sure you want to delete this pet? This action cannot be undone.</string>
+    <string name="pet_delete_with_records_message">Are you sure you want to delete this pet? This will also delete all associated analysis records. This action cannot be undone.</string>
+    <string name="pet_delete_dialog_message_with_name">Are you sure you want to delete</string>
+    <string name="pet_delete_question_mark">? This action cannot be undone.</string>
+    <string name="pet_delete_with_records_question">? This will also delete all associated analysis records. This action cannot be undone.</string>
 
     <!-- Camera Screen -->
     <string name="camera_title">Camera</string>
@@ -142,8 +145,13 @@
     <string name="history_all_pets">All Pets</string>
     <string name="history_emotion_filter">Emotion</string>
     <string name="history_all_emotions">All</string>
-    <string name="history_analysis_count_single">%d analysis found</string>
-    <string name="history_analysis_count_plural">%d analyses found</string>
+    <string name="history_analysis_count_single">analysis found</string>
+    <string name="history_analysis_count_plural">analyses found</string>
+    <string name="history_compare_section_title">Comparison History</string>
+    <string name="history_compare_shared_traits">Shared Traits</string>
+    <string name="history_compare_key_differences">Key Differences</string>
+    <string name="history_compare_recommendations">Recommendations</string>
+    <string name="history_compare_timestamp">Logged</string>
     <string name="history_empty_title_filtered">No results found</string>
     <string name="history_empty_title">No analyses yet</string>
     <string name="history_empty_description_filtered">Try adjusting your filters to see more results.</string>
@@ -217,6 +225,18 @@
     <string name="compare_none">None</string>
     <string name="compare_emotion_frequency">Emotion Frequency</string>
     <string name="compare_compatibility_score">Compatibility Score</string>
+    <string name="compare_emotion_empty">No emotion trends to show yet</string>
+    <string name="compare_action_compare">Compare</string>
+    <string name="compare_action_clear">Clear</string>
+    <string name="compare_prompt_title">Ready when you are</string>
+    <string name="compare_prompt_description">Tap the compare button below to generate insights for your pets.</string>
+    <string name="compare_prompt_button">Compare Now</string>
+    <string name="compare_error_dismiss">Dismiss</string>
+    <string name="compare_section_shared_traits">Shared Traits</string>
+    <string name="compare_section_key_differences">Key Differences</string>
+    <string name="compare_section_recommendations">Recommendations</string>
+    <string name="compare_pair_heading">%1$s × %2$s</string>
+    <string name="compare_select_pet_content_description">Select pet</string>
     <string name="compare_empty_title">Add two pets to compare.</string>
     <string name="compare_empty_description">Select two pets above to see their emotion analysis comparison.</string>
 
@@ -262,6 +282,11 @@
     <string name="error_validation_failed">Validation failed: %s</string>
     <string name="error_purchase_failed">Purchase failed: %s</string>
     <string name="error_purchase_error">Purchase error: %s</string>
+
+    <!-- Splash -->
+    <string name="splash_loading_error">We couldn't get things ready: %s</string>
+    <string name="splash_try_again">Try Again</string>
+    <string name="splash_tagline">Understand your pet's emotions in seconds</string>
 
     <!-- Timestamps and Placeholders -->
     <string name="timestamp_recently">Recently</string>

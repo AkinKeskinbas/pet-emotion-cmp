@@ -15,6 +15,7 @@ actual class CameraNativeService {
     private var currentCameraCallback: ((ByteArray?) -> Unit)? = null
     private var currentGalleryCallback: ((ByteArray?) -> Unit)? = null
     private var currentVideoGalleryCallback: ((ByteArray?) -> Unit)? = null
+    private var currentVideoRecordCallback: ((ByteArray?) -> Unit)? = null
 
     actual fun openCamera(onResult: (ByteArray?) -> Unit) {
         currentCameraCallback = onResult
@@ -26,9 +27,14 @@ actual class CameraNativeService {
         presentGalleryPicker()
     }
 
-    fun openVideoGallery(onResult: (ByteArray?) -> Unit) {
+    actual fun openVideoGallery(onResult: (ByteArray?) -> Unit) {
         currentVideoGalleryCallback = onResult
         presentVideoGalleryPicker()
+    }
+
+    actual fun recordVideo(onResult: (ByteArray?) -> Unit) {
+        currentVideoRecordCallback = onResult
+        presentVideoRecorder()
     }
 
     private fun presentVideoGalleryPicker() {
@@ -152,6 +158,56 @@ actual class CameraNativeService {
         }
     }
 
+    private fun presentVideoRecorder() {
+        if (!hasCamera()) {
+            println("iOS Native: Camera not available")
+            currentVideoRecordCallback?.invoke(null)
+            currentVideoRecordCallback = null
+            return
+        }
+
+        val presentingController = findTopViewController()
+        if (presentingController == null) {
+            println("iOS Native: Unable to locate a view controller to present the video recorder")
+            currentVideoRecordCallback?.invoke(null)
+            currentVideoRecordCallback = null
+            return
+        }
+
+        val imagePicker = UIImagePickerController()
+        imagePicker.sourceType = UIImagePickerControllerSourceType.UIImagePickerControllerSourceTypeCamera
+
+        // Check available media types for camera
+        val availableTypes = UIImagePickerController.availableMediaTypesForSourceType(
+            UIImagePickerControllerSourceType.UIImagePickerControllerSourceTypeCamera
+        )
+
+        if (availableTypes != null && availableTypes.contains("public.movie")) {
+            imagePicker.mediaTypes = listOf("public.movie")
+            imagePicker.videoQuality = UIImagePickerControllerQualityTypeHigh
+            imagePicker.allowsEditing = false
+        } else {
+            println("iOS Native: Video recording not available on this device")
+            currentVideoRecordCallback?.invoke(null)
+            currentVideoRecordCallback = null
+            return
+        }
+
+        // Create delegate
+        val delegate = VideoRecorderDelegate { videoBytes ->
+            currentVideoRecordCallback?.invoke(videoBytes)
+            currentVideoRecordCallback = null
+        }
+
+        // Store delegate to prevent garbage collection
+        GlobalDelegateStore.storeVideoRecorderDelegate(delegate)
+        imagePicker.delegate = delegate
+
+        dispatch_async(dispatch_get_main_queue()) {
+            presentingController.presentViewController(imagePicker, animated = true, completion = null)
+        }
+    }
+
     private fun presentGalleryPicker() {
         when (PHPhotoLibrary.authorizationStatus()) {
             PHAuthorizationStatusAuthorized, PHAuthorizationStatusLimited -> {
@@ -246,6 +302,7 @@ object GlobalDelegateStore {
     private var cameraDelegate: CameraPickerDelegate? = null
     private var photoDelegate: PhotoPickerDelegate? = null
     private var videoDelegate: VideoPickerDelegate? = null
+    private var videoRecorderDelegate: VideoRecorderDelegate? = null
 
     fun storeCameraDelegate(delegate: CameraPickerDelegate) {
         cameraDelegate = delegate
@@ -257,6 +314,10 @@ object GlobalDelegateStore {
 
     fun storeVideoDelegate(delegate: VideoPickerDelegate) {
         videoDelegate = delegate
+    }
+
+    fun storeVideoRecorderDelegate(delegate: VideoRecorderDelegate) {
+        videoRecorderDelegate = delegate
     }
 }
 
@@ -363,6 +424,39 @@ class VideoPickerDelegate(
         }
 
         println("iOS Native: No video selected")
+        onResult(null)
+    }
+}
+
+// Video recorder delegate (for recording video with camera)
+class VideoRecorderDelegate(
+    private val onResult: (ByteArray?) -> Unit
+) : NSObject(), UIImagePickerControllerDelegateProtocol, UINavigationControllerDelegateProtocol {
+
+    override fun imagePickerController(
+        picker: UIImagePickerController,
+        didFinishPickingMediaWithInfo: Map<Any?, *>
+    ) {
+        picker.dismissViewControllerAnimated(true, null)
+
+        val mediaURL = didFinishPickingMediaWithInfo[UIImagePickerControllerMediaURL] as? NSURL
+        mediaURL?.let { url ->
+            val videoData = NSData.dataWithContentsOfURL(url)
+            videoData?.let { data ->
+                val bytes = data.toByteArray()
+                println("iOS Native: Video recorded: ${bytes.size} bytes")
+                onResult(bytes)
+                return
+            }
+        }
+
+        println("iOS Native: No video recorded")
+        onResult(null)
+    }
+
+    override fun imagePickerControllerDidCancel(picker: UIImagePickerController) {
+        picker.dismissViewControllerAnimated(true, null)
+        println("iOS Native: Video recording cancelled")
         onResult(null)
     }
 }

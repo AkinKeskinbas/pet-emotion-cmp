@@ -69,3 +69,28 @@ actual fun rememberVideoLauncher(
         }
     }
 }
+
+@Composable
+actual fun rememberVideoCameraLauncher(
+    onVideoRecorded: (ByteArray) -> Unit
+): () -> Unit {
+    val cameraService = rememberCameraNativeService()
+    val latestCallback = rememberUpdatedState(onVideoRecorded)
+
+    return remember(cameraService) {
+        {
+            if (!cameraService.hasCamera()) {
+                println("iOS: Camera not available on this device")
+            } else {
+                cameraService.recordVideo { bytes ->
+                    if (bytes != null) {
+                        println("iOS: Video recorded: ${bytes.size} bytes")
+                        latestCallback.value(bytes)
+                    } else {
+                        println("iOS: Video recording cancelled or failed")
+                    }
+                }
+            }
+        }
+    }
+}

@@ -78,8 +78,8 @@ data class PurchaseValidationRequest(
     val platform: String, // "ios" or "android"
     val receipt: String,   // Base64 encoded receipt data
     val transactionId: String,
-    val productId: String,
-    val revenueCatUserId: String // Full RevenueCat User ID with prefix
+    val productId: String
+    // revenueCatUserId removed - backend extracts userId from JWT token
 )
 
 @Serializable

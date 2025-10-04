@@ -170,7 +170,7 @@ fun PetCard(
                     if (avatarBitmap != null) {
                         Image(
                             bitmap = avatarBitmap!!,
-                            contentDescription = stringResource(Res.string.history_pet_photo).replace("%s", pet.name),
+                            contentDescription = "${pet.name} photo",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
@@ -210,7 +210,7 @@ fun PetCard(
                 }
 
                 Text(
-                    text = stringResource(Res.string.my_pets_added).replace("%s", formatTimestamp(pet.createdAt)),
+                    text = "${stringResource(Res.string.my_pets_added)} ${formatTimestamp(pet.createdAt)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -242,7 +242,7 @@ fun PetCard(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text(stringResource(Res.string.pet_delete_dialog_title)) },
-            text = { Text(stringResource(Res.string.pet_delete_dialog_message).replace("%s", pet.name)) },
+            text = { Text("${stringResource(Res.string.pet_delete_dialog_message_with_name)} ${pet.name}${stringResource(Res.string.pet_delete_question_mark)}") },
             confirmButton = {
                 TextButton(
                     onClick = {

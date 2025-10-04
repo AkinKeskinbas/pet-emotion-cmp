@@ -7,15 +7,22 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.keak.petemotions.data.api.BackendApiService
 import com.keak.petemotions.data.model.AnalysisRecord
 import com.keak.petemotions.data.model.AnalysisResult
+import com.keak.petemotions.data.model.CompareHistoryRecord
+import kotlinx.coroutines.Dispatchers
+import com.keak.petemotions.data.storage.MediaStorage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class AnalysisRepositoryImpl(
     private val dataStore: DataStore<Preferences>,
-    private val backendApiService: BackendApiService
+    private val backendApiService: BackendApiService,
+    private val mediaStorage: MediaStorage
 ) : AnalysisRepository {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -23,6 +30,7 @@ class AnalysisRepositoryImpl(
     companion object {
         private val ANALYSIS_RECORDS_KEY = stringPreferencesKey("analysis_records_list")
         private val MEDIA_FILES_KEY = stringPreferencesKey("media_files")
+        private val COMPARE_HISTORY_KEY = stringPreferencesKey("compare_history")
     }
 
     override fun getAllAnalysisRecords(): Flow<List<AnalysisRecord>> {
@@ -33,7 +41,7 @@ class AnalysisRepositoryImpl(
             } catch (e: Exception) {
                 emptyList()
             }
-        }
+        }.flowOn(Dispatchers.Default)
     }
 
     override fun getAnalysisRecordsByPetId(petId: String): Flow<List<AnalysisRecord>> {
@@ -42,9 +50,9 @@ class AnalysisRepositoryImpl(
         }
     }
 
-    override suspend fun getAnalysisRecordById(id: String): AnalysisRecord? {
+    override suspend fun getAnalysisRecordById(id: String): AnalysisRecord? = withContext(Dispatchers.Default) {
         println("AnalysisRepositoryImpl: getAnalysisRecordById called with ID: $id")
-        return try {
+        return@withContext try {
             val preferences = dataStore.data.first()
             val recordsJson = preferences[ANALYSIS_RECORDS_KEY] ?: "[]"
             println("AnalysisRepositoryImpl: Raw JSON from datastore: $recordsJson")
@@ -183,50 +191,78 @@ class AnalysisRepositoryImpl(
         }
     }
 
-    override suspend fun saveMediaFile(mediaBytes: ByteArray, mediaType: String): String {
-        val fileName = "media_${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}.${if (mediaType == "image") "jpg" else "mp4"}"
-        println("AnalysisRepositoryImpl: Saving media file: $fileName (${mediaBytes.size} bytes)")
-
-        // Save media file to DataStore for testing
-        dataStore.edit { preferences ->
-            val currentFilesJson = preferences[MEDIA_FILES_KEY] ?: "{}"
-            val currentFiles = try {
-                json.decodeFromString<Map<String, String>>(currentFilesJson)
+    override fun getCompareHistory(): Flow<List<CompareHistoryRecord>> {
+        return dataStore.data.map { preferences ->
+            val historyJson = preferences[COMPARE_HISTORY_KEY] ?: "[]"
+            try {
+                json.decodeFromString<List<CompareHistoryRecord>>(historyJson)
             } catch (e: Exception) {
-                emptyMap()
+                emptyList()
+            }
+        }.flowOn(Dispatchers.Default)
+    }
+
+    override suspend fun insertCompareHistoryRecord(record: CompareHistoryRecord) {
+        dataStore.edit { preferences ->
+            val currentHistoryJson = preferences[COMPARE_HISTORY_KEY] ?: "[]"
+            val currentHistory = try {
+                json.decodeFromString<List<CompareHistoryRecord>>(currentHistoryJson)
+            } catch (e: Exception) {
+                emptyList()
             }
 
-            // Convert bytes to hex string for storage
-            val base64Data = mediaBytes.joinToString("") { byte ->
-                byte.toUByte().toString(16).padStart(2, '0')
-            }
-            val updatedFiles = currentFiles + (fileName to base64Data)
-            preferences[MEDIA_FILES_KEY] = json.encodeToString(updatedFiles)
+            val updatedHistory = (listOf(record) + currentHistory).distinctBy { it.id }.take(50)
+            preferences[COMPARE_HISTORY_KEY] = json.encodeToString(updatedHistory)
+        }
+    }
+
+    override suspend fun clearCompareHistory() {
+        dataStore.edit { preferences ->
+            preferences.remove(COMPARE_HISTORY_KEY)
+        }
+    }
+
+    override suspend fun getCompareHistoryRecord(id: String): CompareHistoryRecord? {
+        return try {
+            val preferences = dataStore.data.first()
+            val historyJson = preferences[COMPARE_HISTORY_KEY] ?: "[]"
+            val history = json.decodeFromString<List<CompareHistoryRecord>>(historyJson)
+            history.find { it.id == id }
+        } catch (e: Exception) {
+            println("AnalysisRepositoryImpl: Failed to load compare history record $id: ${e.message}")
+            null
+        }
+    }
+
+    override suspend fun saveMediaFile(mediaBytes: ByteArray, mediaType: String): String {
+        val extension = when (mediaType.lowercase()) {
+            "video" -> "mp4"
+            else -> "jpg"
         }
 
-        println("AnalysisRepositoryImpl: Media file saved successfully: $fileName")
-        return fileName
+        return try {
+            val savedPath = mediaStorage.save(mediaBytes, extension)
+            println("AnalysisRepositoryImpl: Media persisted locally as $savedPath (${mediaBytes.size} bytes)")
+            savedPath
+        } catch (e: Exception) {
+            val fallbackName = "media_${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}.$extension"
+            println("AnalysisRepositoryImpl: Failed to persist media locally: ${e.message}")
+            println("AnalysisRepositoryImpl: Falling back to placeholder reference $fallbackName")
+            fallbackName
+        }
     }
 
     override suspend fun loadMediaFile(mediaPath: String): ByteArray? {
-        println("AnalysisRepositoryImpl: Loading media file: $mediaPath")
         return try {
-            val preferences = dataStore.data.first()
-            val filesJson = preferences[MEDIA_FILES_KEY] ?: "{}"
-            val files = json.decodeFromString<Map<String, String>>(filesJson)
-
-            val hexData = files[mediaPath]
-            if (hexData != null) {
-                // Convert hex string back to bytes
-                val bytes = hexData.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
-                println("AnalysisRepositoryImpl: Media file loaded successfully: $mediaPath (${bytes.size} bytes)")
-                bytes
-            } else {
-                println("AnalysisRepositoryImpl: Media file not found: $mediaPath")
-                null
+            mediaStorage.load(mediaPath).also { bytes ->
+                if (bytes == null) {
+                    println("AnalysisRepositoryImpl: No local media found for $mediaPath - showing placeholder")
+                } else {
+                    println("AnalysisRepositoryImpl: Loaded media ${bytes.size} bytes for $mediaPath")
+                }
             }
         } catch (e: Exception) {
-            println("AnalysisRepositoryImpl: Error loading media file: ${e.message}")
+            println("AnalysisRepositoryImpl: Failed to load media $mediaPath: ${e.message}")
             null
         }
     }

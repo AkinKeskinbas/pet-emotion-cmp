@@ -86,6 +86,7 @@ kotlin {
             implementation(libs.purchases.datetime)   // Optional
             implementation(libs.purchases.either)     // Optional
             implementation(libs.purchases.result)
+            implementation(libs.purchases.ui)
 
             // DateTime and UUID
             implementation(libs.kotlinx.datetime)
@@ -123,9 +124,13 @@ android {
         applicationId = "com.keak.petemotions"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 3
+        versionCode = 4
         versionName = "1.0"
     }
+
+    // Let RevenueCat use its preferred Google Play Billing Library version
+    // RevenueCat KMP 2.1.5+17.7.0 uses Google Play Billing Library 8.x
+    // Forcing a different version can cause issues with product queries
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

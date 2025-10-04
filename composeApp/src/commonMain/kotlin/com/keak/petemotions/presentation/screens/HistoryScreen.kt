@@ -1,6 +1,7 @@
 package com.keak.petemotions.presentation.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -12,19 +13,24 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.keak.petemotions.data.model.AnalysisRecord
+import com.keak.petemotions.data.model.CompareHistoryRecord
 import com.keak.petemotions.data.model.Pet
-import com.keak.petemotions.data.repository.AnalysisRepository
-import com.keak.petemotions.data.repository.PetRepository
 import com.keak.petemotions.data.storage.MediaStorage
 import com.keak.petemotions.platform.loadImageFromBytes
 import com.keak.petemotions.presentation.navigation.ResultDetailRoute
+import com.keak.petemotions.presentation.navigation.CompareRoute
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import org.jetbrains.compose.resources.stringResource
 import petemotions.composeapp.generated.resources.Res
@@ -34,91 +40,62 @@ import petemotions.composeapp.generated.resources.*
 @Composable
 fun HistoryScreen(
     navController: NavController,
-    analysisRepository: AnalysisRepository = koinInject(),
-    petRepository: PetRepository = koinInject()
+    viewModel: com.keak.petemotions.presentation.viewmodel.HistoryViewModel = org.koin.compose.viewmodel.koinViewModel()
 ) {
-    var analysisRecords by remember { mutableStateOf<List<AnalysisRecord>>(emptyList()) }
-    var pets by remember { mutableStateOf<List<Pet>>(emptyList()) }
-    var selectedPetFilter by remember { mutableStateOf<Pet?>(null) }
-    var selectedEmotionFilter by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    val analysisRecords by viewModel.filteredRecords.collectAsState()
+    val compareHistoryRecords by viewModel.compareHistory.collectAsState()
+    val pets by viewModel.pets.collectAsState()
+    val selectedPetFilter by viewModel.selectedPetFilter.collectAsState()
+    val selectedEmotionFilter by viewModel.selectedEmotionFilter.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
-    LaunchedEffect(Unit) {
-        launch {
-            analysisRepository.getAllAnalysisRecords().collect { records ->
-                analysisRecords = records
-                isLoading = false
-            }
-        }
-        launch {
-            petRepository.getAllPets().collect { petList ->
-                pets = petList
-            }
-        }
-    }
-
-    // Filter records based on selected filters and sort by newest first
-    val filteredRecords = remember(analysisRecords, selectedPetFilter, selectedEmotionFilter) {
-        analysisRecords
-            .filter { record ->
-                val petMatch = selectedPetFilter?.let { it.id == record.petId } ?: true
-                val emotionMatch = selectedEmotionFilter?.let { it == record.emotion } ?: true
-                petMatch && emotionMatch
-            }
-            .sortedByDescending { it.createdAt }
-    }
+    val filteredRecords = analysisRecords
 
     val mediaStorage: MediaStorage = koinInject()
+    val analysisRepository: com.keak.petemotions.data.repository.AnalysisRepository = koinInject()
     var petAvatarBitmaps by remember { mutableStateOf<Map<String, ImageBitmap?>>(emptyMap()) }
 
     LaunchedEffect(pets) {
         if (pets.isNotEmpty()) {
-            launch {
-                val result = mutableMapOf<String, ImageBitmap?>()
-                pets.forEach { pet ->
-                    val bitmap = pet.avatarPath?.takeIf { it.isNotBlank() }?.let { path ->
-                        try {
-                            println("HistoryScreen: Loading avatar for pet ${pet.name} from path: $path")
-                            val bytes = mediaStorage.load(path)
-                            if (bytes != null) {
-                                println("HistoryScreen: Loaded ${bytes.size} bytes for pet ${pet.name}")
-                                val imageBitmap = loadImageFromBytes(bytes)
-                                if (imageBitmap != null) {
-                                    println("HistoryScreen: Successfully created ImageBitmap for pet ${pet.name}")
-                                } else {
-                                    println("HistoryScreen: Failed to create ImageBitmap for pet ${pet.name}")
-                                }
-                                imageBitmap
-                            } else {
-                                println("HistoryScreen: No bytes loaded for pet ${pet.name} from path: $path")
+            withContext(Dispatchers.Default) {
+                val bitmaps = pets.map { pet ->
+                    async {
+                        val bitmap = pet.avatarPath?.takeIf { it.isNotBlank() }?.let { path ->
+                            try {
+                                val bytes = mediaStorage.load(path)
+                                bytes?.let { loadImageFromBytes(it) }
+                            } catch (e: Exception) {
+                                println("HistoryScreen: Error loading avatar for pet ${pet.name}: ${e.message}")
                                 null
                             }
-                        } catch (e: Exception) {
-                            println("HistoryScreen: Error loading avatar for pet ${pet.name}: ${e.message}")
-                            null
                         }
+                        pet.id to bitmap
                     }
-                    result[pet.id] = bitmap
+                }.awaitAll()
+
+                withContext(Dispatchers.Main) {
+                    petAvatarBitmaps = bitmaps.toMap()
                 }
-                petAvatarBitmaps = result
             }
         }
     }
 
     val analysisImageBitmaps by produceState<Map<String, ImageBitmap?>>(initialValue = emptyMap(), key1 = filteredRecords) {
-        val result = mutableMapOf<String, ImageBitmap?>()
-        filteredRecords.forEach { record ->
-            if (record.mediaType == "image") {
-                val imageBytes = try {
-                    analysisRepository.loadMediaFile(record.mediaPath)
-                } catch (_: Exception) {
-                    null
+        withContext(Dispatchers.Default) {
+            val bitmaps = filteredRecords.filter { it.mediaType == "image" }.map { record ->
+                async {
+                    val bitmap = try {
+                        val imageBytes = analysisRepository.loadMediaFile(record.mediaPath)
+                        imageBytes?.let { loadImageFromBytes(it) }
+                    } catch (e: Exception) {
+                        null
+                    }
+                    record.id to bitmap
                 }
-                val bitmap = imageBytes?.let { bytes -> loadImageFromBytes(bytes) }
-                result[record.id] = bitmap
-            }
+            }.awaitAll()
+
+            value = bitmaps.toMap()
         }
-        value = result
     }
 
     Scaffold(
@@ -155,20 +132,25 @@ fun HistoryScreen(
                 FiltersRow(
                     pets = pets,
                     selectedPetFilter = selectedPetFilter,
-                    onPetFilterChanged = { selectedPetFilter = it },
+                    onPetFilterChanged = { viewModel.setSelectedPetFilter(it) },
                     selectedEmotionFilter = selectedEmotionFilter,
-                    onEmotionFilterChanged = { selectedEmotionFilter = it },
+                    onEmotionFilterChanged = { viewModel.setSelectedEmotionFilter(it) },
                     onClearFilters = {
-                        selectedPetFilter = null
-                        selectedEmotionFilter = null
+                        viewModel.setSelectedPetFilter(null)
+                        viewModel.setSelectedEmotionFilter(null)
                     }
                 )
             }
 
             // Results count
             item {
+                val countText = if (filteredRecords.size == 1) {
+                    "${filteredRecords.size} ${stringResource(Res.string.history_analysis_count_single)}"
+                } else {
+                    "${filteredRecords.size} ${stringResource(Res.string.history_analysis_count_plural)}"
+                }
                 Text(
-                    text = "${filteredRecords.size} ${if (filteredRecords.size == 1) "analysis" else "analyses"} found",
+                    text = countText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
@@ -216,8 +198,167 @@ fun HistoryScreen(
                 }
             }
 
+            if (compareHistoryRecords.isNotEmpty()) {
+                item { Spacer(modifier = Modifier.height(8.dp)) }
+                item {
+                    Text(
+                        text = stringResource(Res.string.history_compare_section_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                items(compareHistoryRecords) { record ->
+                    val petAAvatar = record.petAId?.let { petAvatarBitmaps[it] }
+                    val petBAvatar = record.petBId?.let { petAvatarBitmaps[it] }
+
+                    CompareHistoryCard(
+                        record = record,
+                        petABitmap = petAAvatar,
+                        petBBitmap = petBAvatar,
+                        onClick = {
+                            navController.navigate(CompareRoute(historyRecordId = record.id)) {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+            }
+
             item {
                 Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun CompareHistoryCard(
+    record: CompareHistoryRecord,
+    petABitmap: ImageBitmap?,
+    petBBitmap: ImageBitmap?,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    PetAvatar(petABitmap, record.petAName)
+                    Icon(Icons.Default.CompareArrows, contentDescription = null)
+                    PetAvatar(petBBitmap, record.petBName)
+                }
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "${(record.compatibilityScore * 100).toInt()}%",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = stringResource(Res.string.compare_pair_heading, record.petAName, record.petBName),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Text(
+                text = record.overview,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+
+            CompareTraitsSection(
+                header = stringResource(Res.string.history_compare_shared_traits),
+                traits = record.sharedTraits
+            )
+
+            CompareTraitsSection(
+                header = stringResource(Res.string.history_compare_key_differences),
+                traits = record.keyDifferences
+            )
+
+            CompareTraitsSection(
+                header = stringResource(Res.string.history_compare_recommendations),
+                traits = record.recommendations
+            )
+
+            Text(
+                text = "${stringResource(Res.string.history_compare_timestamp)} ${formatTimestamp(record.createdAt)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PetAvatar(bitmap: ImageBitmap?, petName: String) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(RoundedCornerShape(12.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap,
+                contentDescription = petName,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Surface(color = MaterialTheme.colorScheme.primaryContainer) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Text(
+                        text = petName.take(1).uppercase(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompareTraitsSection(header: String, traits: List<String>) {
+    val validTraits = traits.filter { it.isNotBlank() }
+    if (validTraits.isEmpty()) return
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = header,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        validTraits.forEach { trait ->
+            Row(verticalAlignment = Alignment.Top) {
+                Text(
+                    text = "•",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(end = 6.dp)
+                )
+                Text(
+                    text = trait,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
             }
         }
     }
@@ -308,7 +449,7 @@ fun FiltersRow(
                 items(listOf("Happy", "Relaxed", "Playful", "Curious", "Alert", "Stressed", "Sad", "Excited")) { emotion ->
                     FilterChip(
                         onClick = { onEmotionFilterChanged(emotion) },
-                        label = { Text(emotion) },
+                        label = { Text(emotionDisplayName(emotion)) },
                         selected = selectedEmotionFilter == emotion
                     )
                 }
@@ -376,7 +517,7 @@ fun HistoryItem(
                 ) {
                     AssistChip(
                         onClick = { },
-                        label = { Text(analysisRecord.emotion) },
+                        label = { Text(emotionDisplayName(analysisRecord.emotion)) },
                         leadingIcon = {
                             Text(getEmotionEmoji(analysisRecord.emotion))
                         }
@@ -508,4 +649,27 @@ private fun getEmotionEmoji(emotion: String): String {
 private fun formatTimestamp(timestamp: Long): String {
     // TODO: Implement proper timestamp formatting
     return "Recently"
+}
+
+@Composable
+private fun emotionDisplayName(emotion: String): String {
+    val normalized = emotion.trim().lowercase()
+    val resId = when (normalized) {
+        "happy", "joy", "joyful" -> Res.string.emotion_happy
+        "relaxed", "calm" -> Res.string.emotion_relaxed
+        "playful", "play" -> Res.string.emotion_playful
+        "curious" -> Res.string.emotion_curious
+        "alert" -> Res.string.emotion_alert
+        "stressed", "stress" -> Res.string.emotion_stressed
+        "sad" -> Res.string.emotion_sad
+        "excited" -> Res.string.emotion_excited
+        "anxious", "anxiety" -> Res.string.emotion_anxious
+        else -> null
+    }
+
+    return if (resId != null) {
+        stringResource(resId)
+    } else {
+        emotion.ifBlank { "-" }.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+    }
 }

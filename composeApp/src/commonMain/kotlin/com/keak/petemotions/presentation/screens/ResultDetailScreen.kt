@@ -21,7 +21,9 @@ import com.keak.petemotions.data.model.AnalysisRecord
 import com.keak.petemotions.data.repository.AnalysisRepository
 import com.keak.petemotions.platform.createPlaceholderImage
 import com.keak.petemotions.platform.loadImageFromBytes
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import org.jetbrains.compose.resources.stringResource
 import petemotions.composeapp.generated.resources.Res
@@ -32,30 +34,11 @@ import petemotions.composeapp.generated.resources.*
 fun ResultDetailScreen(
     navController: NavController,
     analysisRecordId: String,
-    analysisRepository: AnalysisRepository = koinInject()
+    viewModel: com.keak.petemotions.presentation.viewmodel.ResultDetailViewModel = org.koin.compose.viewmodel.koinViewModel { org.koin.core.parameter.parametersOf(analysisRecordId) }
 ) {
-    var analysisRecord by remember { mutableStateOf<AnalysisRecord?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(analysisRecordId) {
-        println("ResultDetailScreen: Loading analysis record with ID: $analysisRecordId")
-        try {
-            analysisRecord = analysisRepository.getAnalysisRecordById(analysisRecordId)
-            if (analysisRecord == null) {
-                println("ResultDetailScreen: Analysis record not found for ID: $analysisRecordId")
-                error = "Analysis record not found"
-            } else {
-                println("ResultDetailScreen: Analysis record loaded successfully: ${analysisRecord!!.emotion}")
-            }
-        } catch (e: Exception) {
-            println("ResultDetailScreen: Error loading analysis: ${e.message}")
-            error = "Failed to load analysis: ${e.message}"
-        } finally {
-            isLoading = false
-            println("ResultDetailScreen: Loading finished. Error: $error, Record: ${analysisRecord != null}")
-        }
-    }
+    val analysisRecord by viewModel.analysisRecord.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
 
     Scaffold(
         topBar = {
@@ -139,7 +122,7 @@ fun AnalysisResultContent(
             recordId = analysisRecord.id,
             mediaPath = analysisRecord.mediaPath,
             mediaType = analysisRecord.mediaType,
-            analysisRepository = koinInject()
+            analysisRepository = koinInject<com.keak.petemotions.data.repository.AnalysisRepository>()
         )
 
         // Emotion result
@@ -173,15 +156,24 @@ fun MediaPreviewCard(
     var error by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(mediaPath) {
-        try {
-            mediaBytes = analysisRepository.loadMediaFile(mediaPath)
-            if (mediaBytes == null) {
-                error = "Failed to load media"
+        withContext(Dispatchers.Default) {
+            try {
+                val bytes = analysisRepository.loadMediaFile(mediaPath)
+                withContext(Dispatchers.Main) {
+                    mediaBytes = bytes
+                    if (mediaBytes == null) {
+                        error = "Failed to load media"
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    error = "Error loading media: ${e.message}"
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    isLoading = false
+                }
             }
-        } catch (e: Exception) {
-            error = "Error loading media: ${e.message}"
-        } finally {
-            isLoading = false
         }
     }
 
@@ -219,9 +211,11 @@ fun MediaPreviewCard(
                     }
                 }
                 mediaBytes != null && mediaType == "image" -> {
-                    val decodedImage = remember(mediaBytes) {
-                        mediaBytes?.let { bytes ->
-                            loadImageFromBytes(bytes)
+                    val decodedImage by produceState<ImageBitmap?>(initialValue = null, key1 = mediaBytes) {
+                        withContext(Dispatchers.Default) {
+                            value = mediaBytes?.let { bytes ->
+                                loadImageFromBytes(bytes)
+                            }
                         }
                     }
 

@@ -6,27 +6,25 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.keak.petemotions.presentation.screens.WelcomeScreen
-import com.keak.petemotions.presentation.screens.HomeScreen
-import com.keak.petemotions.presentation.screens.CameraScreen
-import com.keak.petemotions.presentation.screens.ResultDetailScreen
-import com.keak.petemotions.presentation.screens.HistoryScreen
-import com.keak.petemotions.presentation.screens.MyPetsScreen
-import com.keak.petemotions.presentation.screens.AddEditPetScreen
-import com.keak.petemotions.presentation.screens.AdvancedAnalysisScreen
-import com.keak.petemotions.presentation.screens.PaywallScreen
-import com.keak.petemotions.presentation.screens.PermissionsScreen
-import com.keak.petemotions.presentation.screens.CompareScreen
+import com.keak.petemotions.presentation.screens.*
 
 @Composable
 fun PetEmotionsNavigation(
     navController: NavHostController = rememberNavController(),
-    startDestination: Any = WelcomeRoute
+    startDestination: Any = SplashRoute
 ) {
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
+        composable<SplashRoute> {
+            SplashScreen(navController)
+        }
+
+        composable<OnboardingRoute> {
+            WelcomeScreen(navController)
+        }
+
         composable<WelcomeRoute> {
             WelcomeScreen(navController)
         }
@@ -62,7 +60,8 @@ fun PetEmotionsNavigation(
         }
 
         composable<PaywallRoute> {
-            PaywallScreen(navController)
+            PaywallRevenueCat(navController)
+           // PaywallScreen(navController)
         }
 
         composable<PermissionsRoute> {
@@ -78,8 +77,9 @@ fun PetEmotionsNavigation(
             )
         }
 
-        composable<CompareRoute> {
-            CompareScreen(navController)
+        composable<CompareRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<CompareRoute>()
+            CompareScreen(navController, historyRecordId = route.historyRecordId)
         }
     }
 }

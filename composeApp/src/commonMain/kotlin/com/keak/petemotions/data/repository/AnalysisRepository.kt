@@ -2,6 +2,7 @@ package com.keak.petemotions.data.repository
 
 import com.keak.petemotions.data.model.AnalysisRecord
 import com.keak.petemotions.data.model.AnalysisResult
+import com.keak.petemotions.data.model.CompareHistoryRecord
 import kotlinx.coroutines.flow.Flow
 
 interface AnalysisRepository {
@@ -20,6 +21,12 @@ interface AnalysisRepository {
     suspend fun deleteAnalysisRecordsByPetId(petId: String)
     suspend fun getAnalysisRecordCount(): Int
     suspend fun getAnalysisRecordCountByPet(petId: String): Int
+
+    // Comparison history
+    fun getCompareHistory(): Flow<List<CompareHistoryRecord>>
+    suspend fun insertCompareHistoryRecord(record: CompareHistoryRecord)
+    suspend fun clearCompareHistory()
+    suspend fun getCompareHistoryRecord(id: String): CompareHistoryRecord?
 
     // Media and AI analysis
     suspend fun saveMediaFile(mediaBytes: ByteArray, mediaType: String): String

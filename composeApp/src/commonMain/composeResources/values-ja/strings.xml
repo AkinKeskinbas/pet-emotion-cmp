@@ -66,7 +66,7 @@
     <string name="my_pets_delete_pet">削除</string>
     <string name="my_pets_empty_title">ペットがいません</string>
     <string name="my_pets_empty_description">最初のペットを追加して分析を始めましょう！</string>
-    <string name="my_pets_added">%s を追加しました</string>
+    <string name="my_pets_added">を追加しました</string>
 
     <!-- Add/Edit Pet Screen -->
     <string name="add_pet_title">ペットを追加</string>
@@ -83,8 +83,11 @@
     <string name="pet_add_photo">写真を追加</string>
     <string name="pet_change_photo">写真を変更</string>
     <string name="pet_delete_dialog_title">削除確認</string>
-    <string name="pet_delete_dialog_message">%s を削除しますか？ この操作は元に戻せません。</string>
-    <string name="pet_delete_with_records_message">%s を削除しますか？関連する分析記録も削除されます。</string>
+    <string name="pet_delete_dialog_message">このペットを削除しますか？ この操作は元に戻せません。</string>
+    <string name="pet_delete_with_records_message">このペットを削除しますか？関連する分析記録も削除されます。</string>
+    <string name="pet_delete_dialog_message_with_name">を削除しますか</string>
+    <string name="pet_delete_question_mark">？ この操作は元に戻せません。</string>
+    <string name="pet_delete_with_records_question">？関連する分析記録も削除されます。この操作は元に戻せません。</string>
 
     <!-- Camera Screen -->
     <string name="camera_title">カメラ</string>
@@ -142,8 +145,13 @@
     <string name="history_all_pets">すべてのペット</string>
     <string name="history_emotion_filter">感情</string>
     <string name="history_all_emotions">すべて</string>
-    <string name="history_analysis_count_single">%d 件の分析</string>
-    <string name="history_analysis_count_plural">%d 件の分析</string>
+    <string name="history_analysis_count_single">件の分析</string>
+    <string name="history_analysis_count_plural">件の分析</string>
+    <string name="history_compare_section_title">比較履歴</string>
+    <string name="history_compare_shared_traits">共通の特徴</string>
+    <string name="history_compare_key_differences">主な違い</string>
+    <string name="history_compare_recommendations">おすすめのアクション</string>
+    <string name="history_compare_timestamp">記録日時</string>
     <string name="history_empty_title_filtered">結果がありません</string>
     <string name="history_empty_title">まだ分析がありません</string>
     <string name="history_empty_description_filtered">フィルターを調整してみてください。</string>
@@ -217,6 +225,18 @@
     <string name="compare_none">なし</string>
     <string name="compare_emotion_frequency">感情の頻度</string>
     <string name="compare_compatibility_score">相性スコア</string>
+    <string name="compare_emotion_empty">感情データはまだありません</string>
+    <string name="compare_action_compare">比較する</string>
+    <string name="compare_action_clear">クリア</string>
+    <string name="compare_prompt_title">準備はできています</string>
+    <string name="compare_prompt_description">下の比較ボタンをタップして、ペットのインサイトを取得しましょう。</string>
+    <string name="compare_prompt_button">今すぐ比較</string>
+    <string name="compare_error_dismiss">閉じる</string>
+    <string name="compare_section_shared_traits">共通点</string>
+    <string name="compare_section_key_differences">主な違い</string>
+    <string name="compare_section_recommendations">おすすめ</string>
+    <string name="compare_pair_heading">%1$s × %2$s</string>
+    <string name="compare_select_pet_content_description">ペットを選択</string>
     <string name="compare_empty_title">2匹を追加してください</string>
     <string name="compare_empty_description">上から2匹を選んで比較を表示します。</string>
 
@@ -262,6 +282,11 @@
     <string name="error_validation_failed">検証失敗: %s</string>
     <string name="error_purchase_failed">購入失敗: %s</string>
     <string name="error_purchase_error">購入エラー: %s</string>
+
+    <!-- Splash -->
+    <string name="splash_loading_error">起動に失敗しました: %s</string>
+    <string name="splash_try_again">再試行</string>
+    <string name="splash_tagline">数秒でペットの感情を理解しましょう</string>
 
     <!-- Timestamps and Placeholders -->
     <string name="timestamp_recently">最近</string>

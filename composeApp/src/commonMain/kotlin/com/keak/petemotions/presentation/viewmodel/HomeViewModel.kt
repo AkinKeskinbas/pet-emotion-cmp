@@ -12,6 +12,7 @@ import com.keak.petemotions.data.service.CoinService
 import com.keak.petemotions.data.api.BackendApiService
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 data class HomeUiState(
     val isLoading: Boolean = false,
@@ -39,9 +40,11 @@ class HomeViewModel(
 
     init {
         println("HomeViewModel: Initializing with backendApiService: $backendApiService")
-        // Coin service no longer needs initialization - coins are managed by backend
         loadData()
-        fetchCoinBalance()
+        // Fetch coin balance in background without blocking UI
+        viewModelScope.launch {
+            fetchCoinBalanceAsync()
+        }
     }
 
     private fun loadData() {
@@ -52,11 +55,12 @@ class HomeViewModel(
                 combine(
                     preferencesRepository.getUserPrefsFlow(),
                     petRepository.getAllPets(),
-                    analysisRepository.getAllAnalysisRecords()
-                ) { userPrefs, pets, analyses ->
+                    analysisRepository.getAllAnalysisRecords(),
+                    preferencesRepository.getCoinBalance()
+                ) { userPrefs, pets, analyses, coinBalance ->
                     // Sort analyses by creation date descending (latest first) and take top 5
                     val recentAnalyses = analyses.sortedByDescending { it.createdAt }.take(5)
-                    HomeDataBundle(userPrefs, pets, recentAnalyses, CoinBalance())
+                    HomeDataBundle(userPrefs, pets, recentAnalyses, coinBalance)
                 }.collect { bundle ->
                     updateState {
                         it.copy(
@@ -85,39 +89,39 @@ class HomeViewModel(
         updateState { it.copy(error = null) }
     }
 
-    private fun fetchCoinBalance() {
-        println("HomeViewModel: fetchCoinBalance() called")
-        viewModelScope.launch {
-            try {
-                // Check if backend is authenticated, if not wait a bit for startup registration
-                if (!backendApiService.isAuthenticated()) {
-                    println("HomeViewModel: Backend not authenticated yet, waiting 2 seconds for startup registration...")
-                    kotlinx.coroutines.delay(2000) // Wait 2 seconds for startup registration
+    private suspend fun fetchCoinBalanceAsync() {
+        try {
+            println("HomeViewModel: Fetching coin balance in background...")
+            backendApiService.getCoinBalance().fold(
+                onSuccess = { response ->
+                    println("HomeViewModel: Fetched coin balance: ${response.balance}")
+                    val updatedBalance = CoinBalance(
+                        balance = response.balance,
+                        lastUpdated = Clock.System.now().toEpochMilliseconds()
+                    )
+                    preferencesRepository.saveCoinBalance(updatedBalance)
+                    updateState { it.copy(coinBalance = updatedBalance) }
+                },
+                onFailure = { exception ->
+                    println("HomeViewModel: Failed to fetch coin balance: ${exception.message}")
+                    // Silent fail - don't disrupt main UI
                 }
+            )
+        } catch (e: Exception) {
+            println("HomeViewModel: Exception fetching coin balance: ${e.message}")
+            // Silent fail for coin balance
+        }
+    }
 
-                println("HomeViewModel: About to call backendApiService.getCoinBalance()")
-                backendApiService.getCoinBalance().fold(
-                    onSuccess = { response ->
-                        println("HomeViewModel: Fetched coin balance: ${response.balance}")
-                        updateState {
-                            it.copy(coinBalance = CoinBalance(balance = response.balance))
-                        }
-                    },
-                    onFailure = { exception ->
-                        println("HomeViewModel: Failed to fetch coin balance: ${exception.message}")
-                        // If still no auth after waiting, this is expected and we silently fail
-                        // Don't show error for coin balance fetch failures to avoid disrupting main UI
-                    }
-                )
-            } catch (e: Exception) {
-                println("HomeViewModel: Exception fetching coin balance: ${e.message}")
-                // Silent fail for coin balance - don't disrupt main UI
-            }
+    // Public function to manually refresh coin balance (e.g., after purchase)
+    fun refreshCoinBalance() {
+        viewModelScope.launch {
+            fetchCoinBalanceAsync()
         }
     }
 
     fun refresh() {
         loadData()
-        fetchCoinBalance()
+        refreshCoinBalance()
     }
 }

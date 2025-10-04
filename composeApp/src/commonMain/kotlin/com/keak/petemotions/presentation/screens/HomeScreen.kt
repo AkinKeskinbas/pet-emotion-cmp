@@ -378,7 +378,7 @@ fun BottomNavigationBar(navController: NavController) {
             icon = { Icon(Icons.Default.Compare, contentDescription = stringResource(Res.string.nav_compare)) },
             label = { Text(stringResource(Res.string.nav_compare)) },
             selected = false,
-            onClick = { navController.navigate(CompareRoute) }
+            onClick = { navController.navigate(CompareRoute()) }
         )
         NavigationBarItem(
             icon = { Icon(Icons.Default.History, contentDescription = stringResource(Res.string.nav_history)) },
@@ -453,7 +453,9 @@ fun CoinBalanceCard(coinBalance: Int, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(
+                modifier = Modifier.weight(1f, fill = false)
+            ) {
                 Text(
                     text = stringResource(Res.string.home_your_coins),
                     style = MaterialTheme.typography.titleMedium,
@@ -467,9 +469,11 @@ fun CoinBalanceCard(coinBalance: Int, onClick: () -> Unit) {
                 )
             }
 
+            Spacer(modifier = Modifier.width(16.dp))
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = "🪙",

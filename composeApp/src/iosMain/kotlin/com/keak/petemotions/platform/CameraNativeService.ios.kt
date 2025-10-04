@@ -185,7 +185,9 @@ actual class CameraNativeService {
         if (availableTypes != null && availableTypes.contains("public.movie")) {
             imagePicker.mediaTypes = listOf("public.movie")
             imagePicker.videoQuality = UIImagePickerControllerQualityTypeHigh
+            imagePicker.videoMaximumDuration = 5.0 // 5 seconds limit
             imagePicker.allowsEditing = false
+            println("iOS Native: Video recording configured with 5 second limit")
         } else {
             println("iOS Native: Video recording not available on this device")
             currentVideoRecordCallback?.invoke(null)

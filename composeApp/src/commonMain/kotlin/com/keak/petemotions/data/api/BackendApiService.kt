@@ -223,12 +223,15 @@ class BackendApiService(
                 if (response.status.value == 402) {
                     return try {
                         val errorResponse = json.decodeFromString<ErrorResponse>(errorText)
-                        val hintMessage = errorResponse.error.details.hint ?: "Insufficient coins for this operation."
-                        println("Backend: Insufficient coins hint: $hintMessage")
-                        Result.failure(InsufficientCoinsException(0, 0, hintMessage))
+                        // Priority: hint > message > default
+                        val userMessage = errorResponse.error.details.hint
+                            ?: errorResponse.error.message.takeIf { it.isNotBlank() }
+                            ?: "Insufficient coins for this operation."
+                        println("Backend: Insufficient coins - user message: $userMessage")
+                        Result.failure(InsufficientCoinsException(0, 0, userMessage))
                     } catch (e: Exception) {
                         println("Backend: Failed to parse 402 error: ${e.message}")
-                        Result.failure(Exception("Insufficient coins for this operation."))
+                        Result.failure(InsufficientCoinsException(0, 0, "Insufficient coins for this operation."))
                     }
                 }
 
@@ -312,12 +315,15 @@ class BackendApiService(
                 if (response.status.value == 402) {
                     return try {
                         val errorResponse = json.decodeFromString<ErrorResponse>(errorText)
-                        val hintMessage = errorResponse.error.details.hint ?: "Insufficient coins for this operation."
-                        println("Backend: Insufficient coins hint: $hintMessage")
-                        Result.failure(InsufficientCoinsException(0, 0, hintMessage))
+                        // Priority: hint > message > default
+                        val userMessage = errorResponse.error.details.hint
+                            ?: errorResponse.error.message.takeIf { it.isNotBlank() }
+                            ?: "Insufficient coins for this operation."
+                        println("Backend: Insufficient coins - user message: $userMessage")
+                        Result.failure(InsufficientCoinsException(0, 0, userMessage))
                     } catch (e: Exception) {
                         println("Backend: Failed to parse 402 error: ${e.message}")
-                        Result.failure(Exception("Insufficient coins for this operation."))
+                        Result.failure(InsufficientCoinsException(0, 0, "Insufficient coins for this operation."))
                     }
                 }
 
@@ -790,10 +796,28 @@ class BackendApiService(
             println("Backend: Parsing error response: $errorText")
             val errorResponse = json.decodeFromString<ErrorResponse>(errorText)
             val errorCode = errorResponse.error.code
+            val errorMessage = errorResponse.error.message
             val details = errorResponse.error.details
-            println("Backend: Parsed error code: $errorCode, httpStatus: ${details.httpStatus}")
+            println("Backend: Parsed error code: $errorCode, message: $errorMessage, httpStatus: ${details.httpStatus}")
 
+            // Priority 1: Use hint if available (most specific user guidance)
+            if (!details.hint.isNullOrBlank()) {
+                println("Backend: Using hint from error response: ${details.hint}")
+                return details.hint
+            }
+
+            // Priority 2: Use error message from backend (already localized and specific)
+            if (errorMessage.isNotBlank()) {
+                println("Backend: Using error message from response: $errorMessage")
+                return errorMessage
+            }
+
+            // Priority 3: Fall back to error code mapping
             when (errorCode) {
+                "NOT_A_PET" -> "Upload a clear photo focused on the pet."
+                "INSUFFICIENT_COINS" -> "Insufficient coins for this operation."
+                "PAYLOAD_TOO_LARGE" -> "Please compress your image/video before uploading."
+                "UNAUTHORIZED" -> "Please re-authenticate by restarting the app."
                 "OPENAI_ERROR" -> {
                     when (statusCode) {
                         502 -> "The AI service is temporarily unavailable. Please try again in a few moments."
@@ -806,7 +830,7 @@ class BackendApiService(
                 "AUTHENTICATION_ERROR" -> "Authentication failed. Please restart the app."
                 "RATE_LIMIT_ERROR" -> "You've reached the request limit. Please wait before trying again."
                 else -> {
-                    // For unknown error codes, provide a generic but helpful message
+                    // For unknown error codes, provide helpful messages based on HTTP status
                     when (statusCode) {
                         400 -> "Invalid request. Please try with a different photo."
                         401 -> "Authentication failed. Please restart the app."

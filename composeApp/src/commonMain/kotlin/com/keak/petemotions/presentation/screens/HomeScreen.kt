@@ -44,6 +44,7 @@ fun HomeScreen(
                     // Coin Balance Display
                     CoinBalanceChip(
                         coinBalance = uiState.coinBalance.balance,
+                        isLoading = uiState.isCoinBalanceLoading,
                         onClick = { navController.navigate(PaywallRoute) }
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -72,6 +73,7 @@ fun HomeScreen(
             item {
                 CoinBalanceCard(
                     coinBalance = uiState.coinBalance.balance,
+                    isLoading = uiState.isCoinBalanceLoading,
                     onClick = { navController.navigate(PaywallRoute) }
                 )
             }
@@ -410,7 +412,7 @@ private fun getEmotionEmoji(emotion: String): String {
 }
 
 @Composable
-fun CoinBalanceChip(coinBalance: Int, onClick: () -> Unit) {
+fun CoinBalanceChip(coinBalance: Int, isLoading: Boolean = false, onClick: () -> Unit) {
     AssistChip(
         onClick = onClick,
         label = {
@@ -418,15 +420,23 @@ fun CoinBalanceChip(coinBalance: Int, onClick: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = "🪙",
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Text(
-                    text = coinBalance.toString(),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                } else {
+                    Text(
+                        text = "🪙",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Text(
+                        text = coinBalance.toString(),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         },
         colors = AssistChipDefaults.assistChipColors(
@@ -437,7 +447,7 @@ fun CoinBalanceChip(coinBalance: Int, onClick: () -> Unit) {
 }
 
 @Composable
-fun CoinBalanceCard(coinBalance: Int, onClick: () -> Unit) {
+fun CoinBalanceCard(coinBalance: Int, isLoading: Boolean = false, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
@@ -471,20 +481,28 @@ fun CoinBalanceCard(coinBalance: Int, onClick: () -> Unit) {
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = "🪙",
-                    style = MaterialTheme.typography.headlineMedium
-                )
-                Text(
-                    text = coinBalance.toString(),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    strokeWidth = 3.dp,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "🪙",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                    Text(
+                        text = coinBalance.toString(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
             }
         }
     }

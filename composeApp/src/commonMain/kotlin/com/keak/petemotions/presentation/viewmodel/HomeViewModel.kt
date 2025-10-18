@@ -16,6 +16,7 @@ import kotlinx.datetime.Clock
 
 data class HomeUiState(
     val isLoading: Boolean = false,
+    val isCoinBalanceLoading: Boolean = false,
     val userPrefs: UserPrefs = UserPrefs.default(),
     val pets: List<Pet> = emptyList(),
     val recentAnalyses: List<AnalysisRecord> = emptyList(),
@@ -91,6 +92,7 @@ class HomeViewModel(
 
     private suspend fun fetchCoinBalanceAsync() {
         try {
+            updateState { it.copy(isCoinBalanceLoading = true) }
             println("HomeViewModel: Fetching coin balance in background...")
             backendApiService.getCoinBalance().fold(
                 onSuccess = { response ->
@@ -100,15 +102,17 @@ class HomeViewModel(
                         lastUpdated = Clock.System.now().toEpochMilliseconds()
                     )
                     preferencesRepository.saveCoinBalance(updatedBalance)
-                    updateState { it.copy(coinBalance = updatedBalance) }
+                    updateState { it.copy(coinBalance = updatedBalance, isCoinBalanceLoading = false) }
                 },
                 onFailure = { exception ->
                     println("HomeViewModel: Failed to fetch coin balance: ${exception.message}")
+                    updateState { it.copy(isCoinBalanceLoading = false) }
                     // Silent fail - don't disrupt main UI
                 }
             )
         } catch (e: Exception) {
             println("HomeViewModel: Exception fetching coin balance: ${e.message}")
+            updateState { it.copy(isCoinBalanceLoading = false) }
             // Silent fail for coin balance
         }
     }

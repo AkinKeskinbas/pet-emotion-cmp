@@ -67,16 +67,20 @@ class SplashViewModel(
     }
 
     private suspend fun ensureBackendAuthentication() {
+        // Backend registration already happens in Application/IOSApp initialization
+        // Just verify authentication status here
         if (backendApiService.isAuthenticated()) {
             println("SplashViewModel: Backend already authenticated")
             return
         }
 
-        println("SplashViewModel: Attempting backend registration")
-        backendApiService.register()
-            .onFailure { error ->
-                println("SplashViewModel: Backend registration failed: ${error.message}")
-                throw error
-            }
+        // If not authenticated, this is an error state
+        // The app should have already registered in Application/IOSApp init
+        println("SplashViewModel: WARNING - Backend not authenticated after app initialization")
+        println("SplashViewModel: This should not happen as registration occurs in Application/IOSApp")
+
+        // Don't register again here - it already happened in app init
+        // If we're not authenticated at this point, something went wrong earlier
+        throw IllegalStateException("Backend authentication not initialized properly")
     }
 }

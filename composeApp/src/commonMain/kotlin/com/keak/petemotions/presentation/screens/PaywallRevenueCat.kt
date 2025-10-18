@@ -17,6 +17,7 @@ import org.koin.compose.koinInject
 @Composable
 fun PaywallRevenueCat(navController: NavController) {
     val backendApi: BackendApiService = koinInject()
+    val homeViewModel: com.keak.petemotions.presentation.viewmodel.HomeViewModel = org.koin.compose.viewmodel.koinViewModel()
 
     val listener = remember {
         object : com.revenuecat.purchases.kmp.ui.revenuecatui.PaywallListener {
@@ -59,10 +60,17 @@ fun PaywallRevenueCat(navController: NavController) {
                             println("[Paywall] ✅ Purchase validated successfully!")
                             println("  - Coins added: ${response.coinsAdded}")
                             println("  - New balance: ${response.newBalance}")
+
+                            // Refresh coin balance immediately after purchase
+                            homeViewModel.refreshCoinBalance()
                         },
                         onFailure = { error ->
                             println("[Paywall] ❌ Purchase validation failed: ${error.message}")
                             println("[Paywall] Note: Test purchases may fail validation but RevenueCat already processed the purchase")
+
+                            // Still refresh coin balance even if validation fails
+                            // Backend may have processed it successfully
+                            homeViewModel.refreshCoinBalance()
                         }
                     )
                 }

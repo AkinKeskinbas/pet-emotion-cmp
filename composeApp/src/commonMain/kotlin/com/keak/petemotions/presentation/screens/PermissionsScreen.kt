@@ -40,21 +40,28 @@ fun PermissionsScreen(
     var microphonePermissionGranted by remember { mutableStateOf(false) }
     var photoLibraryPermissionGranted by remember { mutableStateOf(false) }
 
+    // Track permission check trigger
+    var permissionCheckTrigger by remember { mutableStateOf(0) }
+
     // Permission launchers
     val cameraLauncher = rememberPermissionLauncher(PermissionType.CAMERA) { granted ->
         cameraPermissionGranted = granted
+        // Trigger recheck for all permissions when one changes
+        permissionCheckTrigger++
     }
 
     val microphoneLauncher = rememberPermissionLauncher(PermissionType.MICROPHONE) { granted ->
         microphonePermissionGranted = granted
+        permissionCheckTrigger++
     }
 
     val photoLibraryLauncher = rememberPermissionLauncher(PermissionType.PHOTO_LIBRARY) { granted ->
         photoLibraryPermissionGranted = granted
+        permissionCheckTrigger++
     }
 
-    // Check permissions on start
-    LaunchedEffect(Unit) {
+    // Check permissions on start and when trigger changes
+    LaunchedEffect(permissionCheckTrigger) {
         cameraPermissionGranted = permissionService.checkPermission(PermissionType.CAMERA) == PermissionStatus.GRANTED
         microphonePermissionGranted = permissionService.checkPermission(PermissionType.MICROPHONE) == PermissionStatus.GRANTED
         photoLibraryPermissionGranted = permissionService.checkPermission(PermissionType.PHOTO_LIBRARY) == PermissionStatus.GRANTED
@@ -171,34 +178,19 @@ fun PermissionsScreen(
             )
 
             // Continue button
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(bottom = 24.dp)
+            Button(
+                onClick = onContinue,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .padding(bottom = 24.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Button(
-                    onClick = onContinue,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    enabled = cameraPermissionGranted, // At minimum, camera is required
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(
-                        text = stringResource(Res.string.action_continue),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                if (!cameraPermissionGranted) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(Res.string.permissions_camera_required),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center
-                    )
-                }
+                Text(
+                    text = stringResource(Res.string.action_continue),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             // Extra bottom spacing to ensure button is always visible

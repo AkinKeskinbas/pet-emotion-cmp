@@ -124,8 +124,8 @@ android {
         applicationId = "com.keak.petemotions"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 5
-        versionName = "1.0"
+        versionCode = 7
+        versionName = "1.1"
     }
 
     // Let RevenueCat use its preferred Google Play Billing Library version

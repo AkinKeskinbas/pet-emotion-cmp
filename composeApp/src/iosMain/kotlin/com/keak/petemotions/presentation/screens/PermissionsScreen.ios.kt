@@ -18,7 +18,15 @@ actual fun rememberPermissionLauncher(
     return {
         scope.launch {
             val result = permissionService.requestPermission(permissionType)
-            onResult(result == PermissionStatus.GRANTED)
+            val isGranted = result == PermissionStatus.GRANTED
+            onResult(isGranted)
+
+            // Re-check permission status after request to ensure state is updated
+            if (!isGranted) {
+                kotlinx.coroutines.delay(500) // Small delay to ensure iOS system dialog is dismissed
+                val recheckResult = permissionService.checkPermission(permissionType)
+                onResult(recheckResult == PermissionStatus.GRANTED)
+            }
         }
     }
 }
